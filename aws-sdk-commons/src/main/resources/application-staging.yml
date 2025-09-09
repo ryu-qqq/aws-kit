@@ -1,0 +1,32 @@
+# 스테이징 환경 설정
+aws:
+  region: ${AWS_REGION:us-west-2}
+  credentials:
+    use-instance-profile: true
+  client-config:
+    connection-timeout: PT8S
+    socket-timeout: PT25S
+    max-concurrency: 40
+    user-agent-prefix: "ryuqq-aws-sdk-staging"
+  retry-policy:
+    max-retries: 3
+    base-delay: PT0.1S
+    max-backoff-time: PT15S
+
+# 스테이징 로깅 설정
+logging:
+  level:
+    com.ryuqq.aws: INFO
+    software.amazon.awssdk: WARN
+    org.springframework: WARN
+    root: INFO
+
+# Actuator 보안 설정
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: never

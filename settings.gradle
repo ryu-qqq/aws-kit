@@ -1,0 +1,22 @@
+pluginManagement {
+    repositories {
+        gradlePluginPortal()
+        mavenCentral()
+    }
+}
+
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories {
+        mavenCentral()
+    }
+}
+
+rootProject.name = 'awskit'
+
+include 'aws-sdk-commons'
+include 'aws-sqs-client'  
+include 'aws-dynamodb-client'
+include 'aws-s3-client'
+include 'aws-lambda-client'
+include 'example-app'

@@ -1,0 +1,16 @@
+dependencies {
+    // AWS SDK Commons dependency
+    api project(':aws-sdk-commons')
+    
+    // AWS SQS SDK
+    api 'software.amazon.awssdk:sqs'
+    
+    // Spring Boot Starter (for auto-configuration)
+    api 'org.springframework.boot:spring-boot-starter'
+    
+    // Testing with LocalStack
+    testImplementation 'org.testcontainers:testcontainers'
+    testImplementation 'org.testcontainers:junit-jupiter'
+    testImplementation 'org.testcontainers:localstack'
+    testImplementation "cloud.localstack:localstack-utils:${localstackVersion}"
+}

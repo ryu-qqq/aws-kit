@@ -1,0 +1,68 @@
+# SQS 클라이언트 설정
+aws:
+  sqs:
+    default-queue-url-prefix: ${AWS_SQS_QUEUE_URL_PREFIX:}
+    enable-long-polling: true
+    long-polling-wait-time: PT20S
+    
+    message-config:
+      message-retention-period: 345600  # 4 days in seconds
+      visibility-timeout: 30            # 30 seconds
+      receive-message-wait-time: 20     # 20 seconds for long polling
+      enable-message-deduplication: false
+      fifo-queue: false
+      
+    batch-config:
+      max-batch-size: 10
+      max-receive-messages: 10
+      batch-flush-interval: PT5S
+      enable-batching: true
+      
+    dead-letter-queue:
+      enabled: false
+      queue-name: ${AWS_SQS_DLQ_NAME:}
+      max-receive-count: 3
+
+# LocalStack 개발환경 설정
+---
+spring:
+  config:
+    activate:
+      on-profile: dev
+
+aws:
+  region: us-east-1
+  sqs:
+    default-queue-url-prefix: http://localhost:4566/000000000000/
+
+---
+spring:
+  config:
+    activate:
+      on-profile: staging
+
+aws:
+  sqs:
+    message-config:
+      visibility-timeout: 60
+    batch-config:
+      max-batch-size: 5
+      batch-flush-interval: PT10S
+
+---
+spring:
+  config:
+    activate:
+      on-profile: prod
+
+aws:
+  sqs:
+    message-config:
+      message-retention-period: 1209600  # 14 days maximum
+      visibility-timeout: 300             # 5 minutes
+    batch-config:
+      max-batch-size: 10
+      batch-flush-interval: PT3S
+    dead-letter-queue:
+      enabled: true
+      max-receive-count: 5

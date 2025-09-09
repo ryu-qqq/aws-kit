@@ -1,0 +1,38 @@
+# 운영 환경 설정
+aws:
+  region: ${AWS_REGION:us-west-2}
+  credentials:
+    use-instance-profile: true
+  client-config:
+    connection-timeout: PT10S
+    socket-timeout: PT30S
+    api-call-timeout: PT3M
+    api-call-attempt-timeout: PT45S
+    max-concurrency: 100
+    max-pending-connection-acquires: 20000
+    user-agent-prefix: "ryuqq-aws-sdk-prod"
+  retry-policy:
+    max-retries: 5
+    base-delay: PT0.2S
+    max-backoff-time: PT30S
+    retry-on-throttling: true
+
+# 운영 로깅 설정 (최소화)
+logging:
+  level:
+    com.ryuqq.aws: INFO
+    software.amazon.awssdk: ERROR
+    org.springframework: WARN
+    root: WARN
+
+# 운영 환경 Actuator 보안 설정
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,metrics
+  endpoint:
+    health:
+      show-details: never
+  security:
+    enabled: true

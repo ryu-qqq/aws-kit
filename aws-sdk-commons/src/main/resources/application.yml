@@ -1,0 +1,57 @@
+# AWS SDK 공통 설정 (기본값)
+aws:
+  region: ${AWS_REGION:us-west-2}
+  credentials:
+    access-key-id: ${AWS_ACCESS_KEY_ID:}
+    secret-access-key: ${AWS_SECRET_ACCESS_KEY:}
+    session-token: ${AWS_SESSION_TOKEN:}
+    profile-name: ${AWS_PROFILE:default}
+    use-instance-profile: ${AWS_USE_INSTANCE_PROFILE:true}
+  client-config:
+    connection-timeout: PT10S
+    socket-timeout: PT30S
+    api-call-timeout: PT2M
+    api-call-attempt-timeout: PT30S
+    max-concurrency: 50
+    max-pending-connection-acquires: 10000
+    use-http2: true
+    user-agent-prefix: "ryuqq-aws-sdk"
+  retry-policy:
+    max-retries: 3
+    base-delay: PT0.1S
+    max-backoff-time: PT20S
+    retry-on-throttling: true
+    retry-on-client-error: false
+
+# Spring Boot 기본 설정
+spring:
+  application:
+    name: ${SPRING_APPLICATION_NAME:aws-sdk-commons}
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+
+# Actuator 설정
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: when-authorized
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+    tags:
+      service: ${spring.application.name}
+      environment: ${spring.profiles.active}
+
+# 로깅 설정
+logging:
+  pattern:
+    console: "%d{HH:mm:ss.SSS} [%thread] %-5level [%X{traceId:-},%X{spanId:-}] %logger{36} - %msg%n"
+  level:
+    com.ryuqq.aws: INFO
+    software.amazon.awssdk: WARN
+    org.springframework: INFO
