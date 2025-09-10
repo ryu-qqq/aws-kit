@@ -1,5 +1,6 @@
 package com.ryuqq.aws.sqs;
 
+import com.ryuqq.aws.sqs.config.SqsAnnotationClientConfiguration;
 import com.ryuqq.aws.sqs.config.SqsClientConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -11,6 +12,6 @@ import software.amazon.awssdk.services.sqs.SqsAsyncClient;
  */
 @AutoConfiguration
 @ConditionalOnClass(SqsAsyncClient.class)
-@Import(SqsClientConfiguration.class)
+@Import({SqsClientConfiguration.class, SqsAnnotationClientConfiguration.class})
 public class AwsSqsAutoConfiguration {
 }

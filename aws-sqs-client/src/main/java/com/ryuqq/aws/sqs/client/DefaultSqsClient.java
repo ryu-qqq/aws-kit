@@ -144,7 +144,7 @@ public class DefaultSqsClient implements SqsClient {
     @Override
     public CompletableFuture<SqsMessage> receiveMessage(String queueUrl) {
         return receiveMessages(queueUrl, 1)
-                .thenApply(messages -> messages.isEmpty() ? null : messages.get(0));
+                .thenApply(messages -> messages.isEmpty() ? null : messages.getFirst());
     }
 
     @Override
@@ -162,7 +162,7 @@ public class DefaultSqsClient implements SqsClient {
                 .queueUrl(queueUrl)
                 .maxNumberOfMessages(Math.min(maxMessages, 10))
                 .waitTimeSeconds(waitTimeSeconds)
-                .attributeNamesWithStrings("All")
+                .attributeNames(QueueAttributeName.ALL)
                 .messageAttributeNames("All")
                 .build();
 
@@ -201,7 +201,7 @@ public class DefaultSqsClient implements SqsClient {
                     metricsProvider.stopApiCallTimer(sample, SERVICE_NAME, "deleteMessage", true);
                     metricsProvider.incrementSuccessCounter(SERVICE_NAME, "deleteMessage");
                     log.debug("Message deleted successfully from queue: {}", queueUrl);
-                    return null;
+                    return (Void) null;
                 })
                 .exceptionally(throwable -> {
                     metricsProvider.stopApiCallTimer(sample, SERVICE_NAME, "deleteMessage", false);
@@ -243,7 +243,7 @@ public class DefaultSqsClient implements SqsClient {
                     
                     log.debug("Batch deleted {} messages from queue: {}", 
                             response.successful().size(), queueUrl);
-                    return null;
+                    return (Void) null;
                 })
                 .exceptionally(throwable -> {
                     metricsProvider.stopApiCallTimer(sample, SERVICE_NAME, "deleteMessageBatch", false);
@@ -270,7 +270,7 @@ public class DefaultSqsClient implements SqsClient {
                     metricsProvider.stopApiCallTimer(sample, SERVICE_NAME, "changeMessageVisibility", true);
                     metricsProvider.incrementSuccessCounter(SERVICE_NAME, "changeMessageVisibility");
                     log.debug("Message visibility changed successfully for queue: {}", queueUrl);
-                    return null;
+                    return (Void) null;
                 })
                 .exceptionally(throwable -> {
                     metricsProvider.stopApiCallTimer(sample, SERVICE_NAME, "changeMessageVisibility", false);
@@ -311,7 +311,7 @@ public class DefaultSqsClient implements SqsClient {
 
         GetQueueAttributesRequest request = GetQueueAttributesRequest.builder()
                 .queueUrl(queueUrl)
-                .attributeNamesWithStrings("All")
+                .attributeNames(QueueAttributeName.ALL)
                 .build();
 
         return sqsAsyncClient.getQueueAttributes(request)
@@ -333,9 +333,20 @@ public class DefaultSqsClient implements SqsClient {
     public CompletableFuture<String> createQueue(String queueName, Map<String, String> attributes) {
         Timer.Sample sample = metricsProvider.startApiCallTimer(SERVICE_NAME, "createQueue");
 
+        // Convert String attributes to QueueAttributeName enum
+        Map<QueueAttributeName, String> enumAttributes = new HashMap<>();
+        attributes.forEach((key, value) -> {
+            try {
+                QueueAttributeName attributeName = QueueAttributeName.fromValue(key);
+                enumAttributes.put(attributeName, value);
+            } catch (Exception e) {
+                log.warn("Unknown queue attribute: {}, skipping", key);
+            }
+        });
+        
         CreateQueueRequest request = CreateQueueRequest.builder()
                 .queueName(queueName)
-                .attributes(attributes)
+                .attributes(enumAttributes)
                 .build();
 
         return sqsAsyncClient.createQueue(request)
@@ -367,7 +378,7 @@ public class DefaultSqsClient implements SqsClient {
                     metricsProvider.stopApiCallTimer(sample, SERVICE_NAME, "deleteQueue", true);
                     metricsProvider.incrementSuccessCounter(SERVICE_NAME, "deleteQueue");
                     log.info("Queue deleted successfully: {}", queueUrl);
-                    return null;
+                    return (Void) null;
                 })
                 .exceptionally(throwable -> {
                     metricsProvider.stopApiCallTimer(sample, SERVICE_NAME, "deleteQueue", false);
@@ -406,8 +417,8 @@ public class DefaultSqsClient implements SqsClient {
                 .messageAttributes(messageAttributes)
                 .sentTimestamp(message.attributes().get(MessageSystemAttributeName.SENT_TIMESTAMP) != null ?
                         Instant.ofEpochMilli(Long.parseLong(message.attributes().get(MessageSystemAttributeName.SENT_TIMESTAMP))) : null)
-                .firstReceiveTimestamp(message.attributes().get(MessageSystemAttributeName.FIRST_RECEIVE_TIMESTAMP) != null ?
-                        Instant.ofEpochMilli(Long.parseLong(message.attributes().get(MessageSystemAttributeName.FIRST_RECEIVE_TIMESTAMP))) : null)
+                .firstReceiveTimestamp(message.attributes().get(MessageSystemAttributeName.APPROXIMATE_FIRST_RECEIVE_TIMESTAMP) != null ?
+                        Instant.ofEpochMilli(Long.parseLong(message.attributes().get(MessageSystemAttributeName.APPROXIMATE_FIRST_RECEIVE_TIMESTAMP))) : null)
                 .receiveCount(message.attributes().get(MessageSystemAttributeName.APPROXIMATE_RECEIVE_COUNT) != null ?
                         Integer.parseInt(message.attributes().get(MessageSystemAttributeName.APPROXIMATE_RECEIVE_COUNT)) : 0)
                 .build();

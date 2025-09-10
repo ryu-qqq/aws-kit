@@ -1,0 +1,23 @@
+aws:
+  sqs:
+    region: us-east-1
+    endpoint: ${AWS_ENDPOINT:http://localhost:4566}
+    access-key-id: test
+    secret-access-key: test
+    default-queue-url-prefix: ${AWS_ENDPOINT:http://localhost:4566}/000000000000/
+    
+    batch-config:
+      max-batch-size: 10
+      max-receive-messages: 10
+      
+    message-config:
+      receive-message-wait-time: 1
+
+logging:
+  level:
+    com.ryuqq.aws.sqs: DEBUG
+    root: INFO
+
+spring:
+  main:
+    allow-bean-definition-overriding: true

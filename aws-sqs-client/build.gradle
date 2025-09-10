@@ -8,9 +8,11 @@ dependencies {
     // Spring Boot Starter (for auto-configuration)
     api 'org.springframework.boot:spring-boot-starter'
     
+    // Jackson for JSON serialization
+    api 'com.fasterxml.jackson.core:jackson-databind'
+    
     // Testing with LocalStack
     testImplementation 'org.testcontainers:testcontainers'
     testImplementation 'org.testcontainers:junit-jupiter'
     testImplementation 'org.testcontainers:localstack'
-    testImplementation "cloud.localstack:localstack-utils:${localstackVersion}"
 }

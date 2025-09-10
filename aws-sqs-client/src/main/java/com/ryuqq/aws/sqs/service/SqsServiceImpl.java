@@ -89,7 +89,7 @@ public class SqsServiceImpl implements SqsService {
                 .map(chunk -> sendMessageBatch(queueName, chunk))
                 .collect(Collectors.toList());
 
-        return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
+        return CompletableFuture.allOf(futures.toArray(new CompletableFuture<?>[0]))
                 .thenApply(v -> futures.stream()
                         .map(CompletableFuture::join)
                         .flatMap(List::stream)
@@ -114,7 +114,7 @@ public class SqsServiceImpl implements SqsService {
                         sqsClient.receiveMessages(queueUrl, sqsProperties.getBatchConfig().getMaxReceiveMessages()))
                 .thenCompose(messages -> {
                     if (messages.isEmpty()) {
-                        return CompletableFuture.completedFuture(null);
+                        return CompletableFuture.completedFuture((Void) null);
                     }
 
                     // 병렬로 메시지 처리
@@ -127,9 +127,9 @@ public class SqsServiceImpl implements SqsService {
                                     throw e;
                                 }
                             }, pollingExecutor))
-                            .collect(Collectors.toList());
+                            .toList();
 
-                    return CompletableFuture.allOf(processingFutures.toArray(new CompletableFuture[0]));
+                    return CompletableFuture.allOf(processingFutures.toArray(new CompletableFuture<?>[0]));
                 })
                 .exceptionally(AwsExceptionHandler.handleAsync("sqs", "receiveAndProcessMessages"));
     }
@@ -138,19 +138,19 @@ public class SqsServiceImpl implements SqsService {
     public CompletableFuture<Void> receiveProcessAndDelete(String queueName, Consumer<SqsMessage> processor) {
         return getQueueUrl(queueName)
                 .thenCompose(queueUrl -> 
-                        sqsClient.receiveMessages(queueUrl, sqsProperties.getBatchConfig().getMaxReceiveMessages()))
-                .thenCompose(messages -> {
-                    if (messages.isEmpty()) {
-                        return CompletableFuture.completedFuture(null);
-                    }
+                        sqsClient.receiveMessages(queueUrl, sqsProperties.getBatchConfig().getMaxReceiveMessages())
+                                .thenCompose(messages -> {
+                                    if (messages.isEmpty()) {
+                                        return CompletableFuture.completedFuture((Void) null);
+                                    }
 
-                    // 메시지 처리 및 삭제
-                    List<CompletableFuture<Void>> futures = messages.stream()
-                            .map(message -> processAndDeleteMessage(queueUrl, message, processor))
-                            .collect(Collectors.toList());
+                                    // 메시지 처리 및 삭제
+                                    List<CompletableFuture<Void>> futures = messages.stream()
+                                            .map(message -> processAndDeleteMessage(queueUrl, message, processor))
+                                            .toList();
 
-                    return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
-                })
+                                    return CompletableFuture.allOf(futures.toArray(new CompletableFuture<?>[0]));
+                                }))
                 .exceptionally(AwsExceptionHandler.handleAsync("sqs", "receiveProcessAndDelete"));
     }
 
@@ -160,7 +160,7 @@ public class SqsServiceImpl implements SqsService {
                 .thenCompose(v -> sqsClient.deleteMessage(queueUrl, message.getReceiptHandle()))
                 .exceptionally(throwable -> {
                     log.error("Failed to process or delete message: {}", message.getMessageId(), throwable);
-                    return null;
+                    return (Void) null;
                 });
     }
 
@@ -245,7 +245,7 @@ public class SqsServiceImpl implements SqsService {
             return sqsClient.receiveMessage(sourceQueueUrl)
                     .thenCompose(message -> {
                         if (message == null) {
-                            return CompletableFuture.completedFuture(null);
+                            return CompletableFuture.completedFuture((Void) null);
                         }
                         
                         // DLQ로 전송
@@ -282,7 +282,7 @@ public class SqsServiceImpl implements SqsService {
         return sqsClient.receiveMessages(queueUrl, 10)
                 .thenCompose(messages -> {
                     if (messages.isEmpty()) {
-                        return CompletableFuture.completedFuture(null);
+                        return CompletableFuture.completedFuture((Void) null);
                     }
 
                     List<String> receiptHandles = messages.stream()
