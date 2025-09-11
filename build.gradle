@@ -6,7 +6,8 @@ plugins {
 }
 
 allprojects {
-    group = project.group
+    // JitPack requires com.github.username format
+    group = System.getenv("JITPACK") ? "com.github.ryu-qqq" : project.group
     version = project.version
     
     apply plugin: 'maven-publish'
