@@ -207,36 +207,14 @@ class DynamoDbIntegrationTest {
 | Commons | ~2,000줄 | ~400줄 | 70% |
 | 전체 | 15,000줄 이상 | ~3,000줄 | 80% |
 
-## 🤝 기여
 
-이 프로젝트는 단순성의 원칙을 따릅니다. 기능을 추가하기 전에 고려하세요:
-1. 이것이 80%의 사용 사례에 필수적인가?
-2. 기존 AWS SDK 기능으로 달성할 수 있는가?
-3. 상당한 복잡성을 추가하는가?
 
-## 📄 라이선스
-
-Apache License 2.0
 
 ## 🔗 관련 프로젝트
 
 - [AWS SDK for Java v2](https://github.com/aws/aws-sdk-java-v2)
 - [Spring Cloud AWS](https://spring.io/projects/spring-cloud-aws)
 - [LocalStack](https://github.com/localstack/localstack)
-
-## ⚡ 성능 고려사항
-
-- 모든 작업은 기본적으로 비동기
-- AWS SDK의 HTTP 클라이언트를 통한 연결 풀링
-- 지수 백오프를 사용한 자동 재시도
-- 향상된 처리량을 위한 배치 작업
-
-## 🛡️ 보안
-
-- AWS 자격 증명을 절대 커밋하지 마세요
-- 프로덕션에서는 IAM 역할 사용
-- 필요한 경우 AWS SDK 클라이언트 측 암호화 활성화
-- 보안 패치를 위한 정기적인 의존성 업데이트
 
 ## 📚 문서
 
@@ -248,4 +226,4 @@ Apache License 2.0
 
 ---
 
-**참고**: 이 라이브러리는 활발히 개발 중입니다. v1.0 안정 릴리스까지 마이너 버전에서 API가 변경될 수 있습니다.
+**참고**: 이 라이브러리는 개발 중입니다. v1.0 안정 릴리스까지 마이너 버전에서 API가 변경될 수 있습니다.
