@@ -1,5 +1,6 @@
 plugins {
     id 'java-library'
+    id 'maven-publish'
     id 'org.springframework.boot' version "${springBootVersion}" apply false
     id 'io.spring.dependency-management' version '1.1.6' apply false
 }
@@ -7,6 +8,8 @@ plugins {
 allprojects {
     group = project.group
     version = project.version
+    
+    apply plugin: 'maven-publish'
 }
 
 subprojects {
@@ -99,6 +102,57 @@ subprojects {
                         connection = 'scm:git:git://github.com/ryu-qqq/aws-kit.git'
                         developerConnection = 'scm:git:ssh://github.com/ryu-qqq/aws-kit.git'
                         url = 'https://github.com/ryu-qqq/aws-kit'
+                    }
+                }
+            }
+        }
+    }
+}
+
+// Root project publishing configuration for JitPack
+publishing {
+    publications {
+        maven(MavenPublication) {
+            groupId = project.group
+            artifactId = 'aws-kit'
+            version = project.version
+            
+            // Create a BOM (Bill of Materials) that includes all subprojects
+            pom {
+                packaging = 'pom'
+                name = 'AWS Kit'
+                description = 'AWS SDK Abstraction Library for Spring Boot'
+                url = 'https://github.com/ryu-qqq/aws-kit'
+                
+                licenses {
+                    license {
+                        name = 'The Apache License, Version 2.0'
+                        url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                    }
+                }
+                
+                developers {
+                    developer {
+                        id = 'ryu-qqq'
+                        name = 'Sangwon Ryu'
+                    }
+                }
+                
+                scm {
+                    connection = 'scm:git:git://github.com/ryu-qqq/aws-kit.git'
+                    developerConnection = 'scm:git:ssh://github.com/ryu-qqq/aws-kit.git'
+                    url = 'https://github.com/ryu-qqq/aws-kit'
+                }
+                
+                withXml {
+                    def dependenciesNode = asNode().appendNode('dependencyManagement').appendNode('dependencies')
+                    
+                    // Add all subprojects as managed dependencies
+                    subprojects.each { subproject ->
+                        def dependencyNode = dependenciesNode.appendNode('dependency')
+                        dependencyNode.appendNode('groupId', subproject.group)
+                        dependencyNode.appendNode('artifactId', subproject.name)
+                        dependencyNode.appendNode('version', subproject.version)
                     }
                 }
             }
