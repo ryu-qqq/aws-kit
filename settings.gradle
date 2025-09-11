@@ -14,9 +14,11 @@ dependencyResolutionManagement {
 
 rootProject.name = 'awskit'
 
+// Core modules
 include 'aws-sdk-commons'
+
+// Client modules
 include 'aws-sqs-client'  
 include 'aws-dynamodb-client'
 include 'aws-s3-client'
 include 'aws-lambda-client'
-include 'example-app'

@@ -5,10 +5,7 @@ build/
 !**/src/test/**/build/
 
 ### IntelliJ IDEA ###
-.idea/modules.xml
-.idea/jarRepositories.xml
-.idea/compiler.xml
-.idea/libraries/
+.idea/
 *.iws
 *.iml
 *.ipr
@@ -40,3 +37,31 @@ bin/
 
 ### Mac OS ###
 .DS_Store
+
+### Temporary files ###
+*.log
+*.tmp
+*.bak
+*.swp
+*~
+.project
+.settings/
+
+### Test reports ###
+test-results/
+reports/
+
+### Build artifacts ###
+*.jar
+!gradle/wrapper/gradle-wrapper.jar
+*.war
+*.ear
+*.class
+
+### Documentation build ###
+docs/_build/
+claudedocs/
+
+### Application files ###
+application-local.yml
+application-*.local.yml

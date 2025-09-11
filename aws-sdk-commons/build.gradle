@@ -13,29 +13,16 @@ bootJar {
 }
 
 dependencies {
-    // Spring Boot
+    // Spring Boot essentials only
     api 'org.springframework.boot:spring-boot-starter'
-    api 'org.springframework.boot:spring-boot-starter-actuator'
-    api 'org.springframework.boot:spring-boot-starter-validation'
     api 'org.springframework.boot:spring-boot-configuration-processor'
     
-    // AWS SDK Common
+    // Essential AWS SDK dependencies only
     api 'software.amazon.awssdk:aws-core'
     api 'software.amazon.awssdk:auth'
     api 'software.amazon.awssdk:regions'
     api 'software.amazon.awssdk:apache-client'
-    api 'software.amazon.awssdk:netty-nio-client'
     
-    // Logging and Monitoring
-    api 'net.logstash.logback:logstash-logback-encoder:7.4'
-    api 'io.micrometer:micrometer-core'
-    api 'io.micrometer:micrometer-registry-prometheus'
-    
-    // Jackson for JSON processing
-    api 'com.fasterxml.jackson.core:jackson-databind'
+    // Jackson for time module only (commonly needed)
     api 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
-    
-    // Resilience4j for circuit breaker
-    api 'io.github.resilience4j:resilience4j-spring-boot3:2.2.0'
-    api 'io.github.resilience4j:resilience4j-reactor:2.2.0'
 }

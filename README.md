@@ -1,225 +1,251 @@
-# AWS SDK v2 표준 모듈
+# AWS Kit - Spring Boot를 위한 간소화된 AWS SDK
 
-Spring Boot 3.3 + Java 21 환경에서 사용할 수 있는 팀용 AWS SDK v2 기반 표준 모듈입니다.
+Spring Boot 애플리케이션을 위해 설계된 경량 모듈식 AWS SDK 래퍼 라이브러리입니다. 이 라이브러리는 AWS SDK의 성능과 유연성을 유지하면서 일반적인 AWS 서비스에 대한 간소화된 인터페이스를 제공합니다.
 
-## 🏗️ 프로젝트 구조
+## 🎯 설계 철학
 
+- **단순성 우선**: 필수 작업만, 과도한 엔지니어링 없음
+- **직접적인 AWS SDK 접근**: 무거운 추상화가 아닌 얇은 래퍼
+- **Spring Boot 네이티브**: 자동 구성 및 속성 기반 설정
+- **기본적으로 비동기**: 모든 작업이 `CompletableFuture` 반환
+- **모듈식 아키텍처**: 필요한 것만 사용
+
+## 📦 모듈
+
+| 모듈 | 설명 | 상태 |
+|--------|-------------|--------|
+| `aws-sdk-commons` | 핵심 구성 및 공유 컴포넌트 | ✅ 안정 |
+| `aws-dynamodb-client` | 간소화된 DynamoDB 작업 | ✅ 안정 |
+| `aws-s3-client` | S3 파일 작업 및 관리 | ✅ 안정 |
+| `aws-sqs-client` | SQS 메시지 큐 작업 | ✅ 안정 |
+| `aws-lambda-client` | Lambda 함수 호출 | ✅ 안정 |
+
+## 🚀 빠른 시작
+
+### JitPack을 통한 사용
+
+#### build.gradle에 JitPack 저장소 추가
+```gradle
+repositories {
+    mavenCentral()
+    maven { url 'https://jitpack.io' }
+}
 ```
-awskit/
-├── aws-sdk-commons/          # AWS SDK 공통 설정 및 유틸리티
-├── aws-sqs-client/          # Amazon SQS 클라이언트
-├── aws-dynamodb-client/     # Amazon DynamoDB 클라이언트  
-├── aws-s3-client/           # Amazon S3 클라이언트
-├── aws-lambda-client/       # AWS Lambda 클라이언트
-└── example-app/             # 사용 예제 애플리케이션
-```
 
-## 🚀 주요 특징
-
-- **Spring Boot 3.3** + **Java 21** 최신 스택
-- **AWS SDK v2** 비동기 클라이언트 활용
-- **멀티 모듈 구조**로 필요한 서비스만 선택적 사용
-- **환경별 설정** 지원 (dev, staging, prod)
-- **표준화된 에러 핸들링** 및 **구조화된 로깅**
-- **메트릭 수집** 및 **모니터링** 지원
-- **LocalStack** 연동으로 로컬 개발 환경 지원
-
-## 📦 모듈 소개
-
-### aws-sdk-commons
-- AWS SDK 공통 설정 및 자동 구성
-- 환경별 프로필 관리 (dev/staging/prod)
-- 표준화된 예외 처리 및 로깅
-- 메트릭 수집 및 성능 모니터링
-- 재시도 정책 및 서킷 브레이커
-
-### aws-sqs-client
-- SQS 메시지 송수신 (단일/배치)
-- FIFO 큐 지원
-- Long Polling 지원
-- Dead Letter Queue 처리
-- 메시지 직렬화/역직렬화
-
-### aws-dynamodb-client
-- DynamoDB Enhanced Client 활용
-- 기본 CRUD 작업 지원
-- 쿼리 및 스캔 기능
-- 배치 처리 및 트랜잭션
-- 조건부 업데이트
-
-### aws-s3-client
-- S3 객체 업로드/다운로드
-- 멀티파트 업로드
-- Pre-signed URL 생성
-- 메타데이터 관리
-
-### aws-lambda-client
-- Lambda 함수 동기/비동기 호출
-- 페이로드 직렬화
-- 에러 처리 및 재시도
-
-## 🔧 사용 방법
-
-### 1. 의존성 추가
-
+#### 의존성 추가
 ```gradle
 dependencies {
-    // 필요한 모듈만 선택적으로 추가
-    implementation project(':aws-sdk-commons')    // 필수
-    implementation project(':aws-sqs-client')     // SQS 사용시
-    implementation project(':aws-dynamodb-client') // DynamoDB 사용시
-    implementation project(':aws-s3-client')      // S3 사용시
-    implementation project(':aws-lambda-client')  // Lambda 사용시
+    implementation 'com.github.yourusername.awskit:aws-sdk-commons:1.0.0'
+    implementation 'com.github.yourusername.awskit:aws-dynamodb-client:1.0.0'
+    implementation 'com.github.yourusername.awskit:aws-s3-client:1.0.0'
+    implementation 'com.github.yourusername.awskit:aws-sqs-client:1.0.0'
+    implementation 'com.github.yourusername.awskit:aws-lambda-client:1.0.0'
 }
 ```
 
-### 2. 설정 파일 구성
+### Spring Boot 구성
 
 ```yaml
-# application.yml
 aws:
-  region: us-west-2
-  credentials:
-    profile-name: default
-    use-instance-profile: true
-  client-config:
-    connection-timeout: PT10S
-    socket-timeout: PT30S
-    max-concurrency: 50
-  retry-policy:
+  region: ap-northeast-2
+  endpoint: ${AWS_ENDPOINT:}  # 선택사항, LocalStack용
+  access-key: ${AWS_ACCESS_KEY_ID}
+  secret-key: ${AWS_SECRET_ACCESS_KEY}
+  
+aws:
+  dynamodb:
+    table-prefix: ${ENVIRONMENT}-
+    timeout: 30s
     max-retries: 3
-    base-delay: PT0.1S
 ```
 
-### 3. 클라이언트 사용 예제
+### 사용 예제
 
-#### SQS 사용
 ```java
-@Autowired
-private SqsClient sqsClient;
-
-public void sendMessage() {
-    sqsClient.sendMessage("queue-url", "message body")
-        .thenAccept(messageId -> 
-            log.info("Message sent: {}", messageId));
+@Service
+public class UserService {
+    private final DynamoDbService<User> dynamoDbService;
+    
+    public CompletableFuture<Void> saveUser(User user) {
+        return dynamoDbService.save(user, "users");
+    }
+    
+    public CompletableFuture<User> getUser(String userId) {
+        Key key = Key.builder()
+            .partitionValue(userId)
+            .build();
+        return dynamoDbService.load(User.class, key, "users");
+    }
 }
 ```
 
-#### DynamoDB 사용  
-```java
-@Autowired
-private DynamoDbClient dynamoDbClient;
+## ⚠️ 중요: 의존성 관리
 
-public void saveItem() {
-    MyItem item = new MyItem("pk", "sk", "data");
-    dynamoDbClient.putItem("table-name", item, MyItem.class)
-        .thenRun(() -> log.info("Item saved"));
+### 현재 상태
+라이브러리는 현재 모든 의존성을 전이적으로 노출하는 `api` 구성을 사용합니다. 이는 리팩토링 중입니다.
+
+### 권장 사용 패턴
+
+**Spring Boot 애플리케이션의 경우:**
+```gradle
+dependencies {
+    // AWS Kit 모듈
+    implementation 'com.github.yourusername.awskit:aws-sdk-commons:1.0.0'
+    implementation 'com.github.yourusername.awskit:aws-dynamodb-client:1.0.0'
+    
+    // Spring Boot 의존성 (자체 버전 관리)
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
 }
 ```
 
-#### S3 사용
-```java
-@Autowired
-private S3Client s3Client;
-
-public void uploadFile() {
-    byte[] content = "file content".getBytes();
-    s3Client.uploadObject("bucket-name", "key", content)
-        .thenAccept(etag -> log.info("File uploaded: {}", etag));
+**Spring이 아닌 애플리케이션의 경우:**
+```gradle
+dependencies {
+    // 핵심 모듈만 사용 (Spring Boot 자동 구성이 활성화되지 않음)
+    implementation('com.github.yourusername.awskit:aws-dynamodb-client:1.0.0') {
+        exclude group: 'org.springframework.boot'
+    }
+    
+    // 자체 AWS SDK 의존성 제공
+    implementation 'software.amazon.awssdk:dynamodb-enhanced:2.28.11'
 }
 ```
 
-#### Lambda 사용
-```java
-@Autowired
-private LambdaClient lambdaClient;
+### 의존성 충돌 처리
 
-public void invokeFunction() {
-    lambdaClient.invokeFunction("function-name", "{\"key\":\"value\"}")
-        .thenAccept(response -> log.info("Response: {}", response));
+버전 충돌이 발생하는 경우:
+
+```gradle
+configurations.all {
+    resolutionStrategy {
+        force 'org.springframework.boot:spring-boot-starter:3.3.4'
+        force 'software.amazon.awssdk:bom:2.28.11'
+    }
 }
 ```
 
-## 🌱 개발 환경 설정
+## 🔧 AWS SDK에서 마이그레이션
 
-### LocalStack 사용
-```bash
-# LocalStack 시작
-docker run --rm -it -p 4566:4566 localstack/localstack
-
-# 개발 프로필로 애플리케이션 실행
-./gradlew :example-app:bootRun --args='--spring.profiles.active=dev'
+### 이전 (직접 AWS SDK)
+```java
+DynamoDbAsyncClient client = DynamoDbAsyncClient.builder()
+    .region(Region.AP_NORTHEAST_2)
+    .build();
+    
+DynamoDbEnhancedAsyncClient enhancedClient = DynamoDbEnhancedAsyncClient.builder()
+    .dynamoDbClient(client)
+    .build();
+    
+DynamoDbAsyncTable<User> table = enhancedClient.table("users", TableSchema.fromBean(User.class));
+CompletableFuture<Void> future = table.putItem(user);
 ```
 
-### 환경별 프로필
-- **dev**: LocalStack 연동, 상세 로깅
-- **staging**: 스테이징 환경 설정
-- **prod**: 운영 환경 최적화 설정
+### 이후 (AWS Kit)
+```java
+@Autowired
+private DynamoDbService<User> dynamoDbService;
 
-## 🧪 예제 애플리케이션
-
-`example-app` 모듈에서 각 클라이언트의 사용법을 확인할 수 있습니다.
-
-```bash
-# 예제 앱 실행
-./gradlew :example-app:bootRun
-
-# Swagger UI 접속
-http://localhost:8080/swagger-ui.html
-
-# API 테스트
-curl -X POST "http://localhost:8080/api/aws/sqs/send" \
-  -H "Content-Type: application/json" \
-  -d "Hello SQS"
+CompletableFuture<Void> future = dynamoDbService.save(user, "users");
 ```
 
-## 📊 모니터링
+## 📋 모듈 호환성 매트릭스
 
-### Actuator Endpoints
-- **Health**: `/actuator/health`
-- **Metrics**: `/actuator/metrics`
-- **Prometheus**: `/actuator/prometheus`
+| AWS Kit 버전 | Spring Boot | AWS SDK | Java |
+|----------------|-------------|---------|------|
+| 1.0.x | 3.3.x | 2.28.x | 21+ |
+| 0.9.x | 3.2.x | 2.27.x | 17+ |
 
-### 사용 가능한 메트릭
-- `aws.api.call.duration`: API 호출 지연시간
-- `aws.api.call.success`: API 호출 성공 수
-- `aws.api.call.error`: API 호출 에러 수
-- `aws.api.call.retry`: API 호출 재시도 수
+## 🏗️ 아키텍처 결정
 
-## 🔒 보안 고려사항
+### 왜 `api` 구성인가 (임시)
+초기 개발 중 단순성을 위해 현재 `api` 구성을 사용합니다. 이는 v2.0에서 적절한 API/구현 분리와 함께 `implementation`으로 변경됩니다.
 
-- AWS 자격증명은 환경변수 또는 IAM Role 사용 권장
-- 민감한 정보는 로깅에서 자동 마스킹
-- 모든 API 호출에 대한 상세 감사 로깅
+### 향후 개선사항 (v2.0)
+1. **API와 구현 분리**
+   - `awskit-api` - 인터페이스만
+   - `awskit-impl` - 구현
+   - `awskit-spring-boot-starter` - 자동 구성
 
-## 🛠️ 빌드 및 테스트
+2. **BOM (Bill of Materials)**
+   ```gradle
+   dependencies {
+       implementation platform('com.github.yourusername:awskit-bom:2.0.0')
+       implementation 'com.github.yourusername:aws-dynamodb-client'
+       // 버전은 BOM에서 관리
+   }
+   ```
 
-```bash
-# 전체 빌드
-./gradlew build
+3. **선택적 의존성**
+   - Spring Boot를 `optional`로
+   - 서비스별 AWS SDK를 `optional`로
 
-# 특정 모듈 빌드
-./gradlew :aws-sqs-client:build
+## 🧪 테스팅
 
-# 테스트 실행
-./gradlew test
+모든 모듈은 LocalStack을 사용한 통합 테스트를 포함합니다:
 
-# 통합 테스트 (LocalStack 필요)
-./gradlew integrationTest
+```java
+@SpringBootTest
+@Testcontainers
+class DynamoDbIntegrationTest {
+    @Container
+    static LocalStackContainer localstack = new LocalStackContainer()
+            .withServices(Service.DYNAMODB);
+    
+    @Test
+    void testDynamoDbOperations() {
+        // 테스트 코드
+    }
+}
 ```
 
-## 📝 라이센스
+## 📊 코드 간소화 지표
 
-MIT License
+| 모듈 | 이전 | 이후 | 감소율 |
+|--------|--------|-------|-----------|
+| DynamoDB | 8,000줄 이상 | ~1,500줄 | 85% |
+| Commons | ~2,000줄 | ~400줄 | 70% |
+| 전체 | 15,000줄 이상 | ~3,000줄 | 80% |
 
-## 🤝 기여 가이드
+## 🤝 기여
 
-1. Fork the repository
-2. Create a feature branch
-3. Commit your changes
-4. Push to the branch
-5. Create a Pull Request
+이 프로젝트는 단순성의 원칙을 따릅니다. 기능을 추가하기 전에 고려하세요:
+1. 이것이 80%의 사용 사례에 필수적인가?
+2. 기존 AWS SDK 기능으로 달성할 수 있는가?
+3. 상당한 복잡성을 추가하는가?
 
-## 📞 지원
+## 📄 라이선스
 
-이슈나 질문이 있으시면 GitHub Issues를 통해 문의해 주세요.
+Apache License 2.0
+
+## 🔗 관련 프로젝트
+
+- [AWS SDK for Java v2](https://github.com/aws/aws-sdk-java-v2)
+- [Spring Cloud AWS](https://spring.io/projects/spring-cloud-aws)
+- [LocalStack](https://github.com/localstack/localstack)
+
+## ⚡ 성능 고려사항
+
+- 모든 작업은 기본적으로 비동기
+- AWS SDK의 HTTP 클라이언트를 통한 연결 풀링
+- 지수 백오프를 사용한 자동 재시도
+- 향상된 처리량을 위한 배치 작업
+
+## 🛡️ 보안
+
+- AWS 자격 증명을 절대 커밋하지 마세요
+- 프로덕션에서는 IAM 역할 사용
+- 필요한 경우 AWS SDK 클라이언트 측 암호화 활성화
+- 보안 패치를 위한 정기적인 의존성 업데이트
+
+## 📚 문서
+
+- [AWS SDK Commons](./aws-sdk-commons/README.md)
+- [DynamoDB Client](./aws-dynamodb-client/README.md)
+- [S3 Client](./aws-s3-client/README.md)
+- [SQS Client](./aws-sqs-client/README.md)
+- [Lambda Client](./aws-lambda-client/README.md)
+
+---
+
+**참고**: 이 라이브러리는 활발히 개발 중입니다. v1.0 안정 릴리스까지 마이너 버전에서 API가 변경될 수 있습니다.

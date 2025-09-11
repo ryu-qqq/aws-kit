@@ -1,91 +1,157 @@
 package com.ryuqq.aws.sqs.service;
 
-import com.ryuqq.aws.sqs.model.SqsMessage;
+import com.ryuqq.aws.sqs.properties.SqsProperties;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+import software.amazon.awssdk.services.sqs.SqsAsyncClient;
+import software.amazon.awssdk.services.sqs.model.*;
 
-import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.Consumer;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 /**
- * SQS 서비스 인터페이스
+ * Simplified SQS service - direct AWS SDK usage
  */
-public interface SqsService {
+@Slf4j
+@Service
+@RequiredArgsConstructor
+public class SqsService {
+
+    private final SqsAsyncClient sqsAsyncClient;
+    private final SqsProperties sqsProperties;
 
     /**
      * 메시지 전송
      */
-    CompletableFuture<String> sendMessage(String queueName, String messageBody);
+    public CompletableFuture<String> sendMessage(String queueUrl, String body) {
+        SendMessageRequest request = SendMessageRequest.builder()
+                .queueUrl(queueUrl)
+                .messageBody(body)
+                .build();
 
-    /**
-     * 지연 메시지 전송
-     */
-    CompletableFuture<String> sendDelayedMessage(String queueName, String messageBody, Duration delay);
-
-    /**
-     * 속성과 함께 메시지 전송
-     */
-    CompletableFuture<String> sendMessageWithAttributes(String queueName, String messageBody,
-                                                       Map<String, String> messageAttributes);
+        return sqsAsyncClient.sendMessage(request)
+                .thenApply(SendMessageResponse::messageId);
+    }
 
     /**
      * 배치 메시지 전송
      */
-    CompletableFuture<List<String>> sendMessageBatch(String queueName, List<String> messages);
+    public CompletableFuture<List<String>> sendMessageBatch(String queueUrl, List<String> messages) {
+        if (messages.size() > sqsProperties.getMaxBatchSize()) {
+            throw new IllegalArgumentException("Batch size cannot exceed " + sqsProperties.getMaxBatchSize());
+        }
+
+        List<SendMessageBatchRequestEntry> entries = IntStream.range(0, messages.size())
+                .mapToObj(i -> SendMessageBatchRequestEntry.builder()
+                        .id(String.valueOf(i))
+                        .messageBody(messages.get(i))
+                        .build())
+                .collect(Collectors.toList());
+
+        SendMessageBatchRequest request = SendMessageBatchRequest.builder()
+                .queueUrl(queueUrl)
+                .entries(entries)
+                .build();
+
+        return sqsAsyncClient.sendMessageBatch(request)
+                .thenApply(response -> {
+                    if (!response.failed().isEmpty()) {
+                        log.warn("Some messages failed to send: {}", response.failed());
+                    }
+                    return response.successful().stream()
+                            .map(SendMessageBatchResultEntry::messageId)
+                            .collect(Collectors.toList());
+                });
+    }
 
     /**
-     * FIFO 큐 메시지 전송
+     * 메시지 수신
      */
-    CompletableFuture<String> sendFifoMessage(String queueName, String messageBody,
-                                            String messageGroupId);
+    public CompletableFuture<List<Message>> receiveMessages(String queueUrl, int maxMessages) {
+        ReceiveMessageRequest request = ReceiveMessageRequest.builder()
+                .queueUrl(queueUrl)
+                .maxNumberOfMessages(Math.min(maxMessages, sqsProperties.getMaxBatchSize()))
+                .waitTimeSeconds(sqsProperties.getLongPollingWaitSeconds())
+                .visibilityTimeout(sqsProperties.getVisibilityTimeout())
+                .attributeNames(QueueAttributeName.ALL)
+                .messageAttributeNames("All")
+                .build();
+
+        return sqsAsyncClient.receiveMessage(request)
+                .thenApply(ReceiveMessageResponse::messages);
+    }
 
     /**
-     * 메시지 수신 및 처리
+     * 메시지 삭제
      */
-    CompletableFuture<Void> receiveAndProcessMessages(String queueName, 
-                                                     Consumer<SqsMessage> processor);
+    public CompletableFuture<Void> deleteMessage(String queueUrl, String receiptHandle) {
+        DeleteMessageRequest request = DeleteMessageRequest.builder()
+                .queueUrl(queueUrl)
+                .receiptHandle(receiptHandle)
+                .build();
+
+        return sqsAsyncClient.deleteMessage(request)
+                .thenRun(() -> log.debug("Message deleted from queue: {}", queueUrl));
+    }
 
     /**
-     * 메시지 수신, 처리 및 자동 삭제
+     * 배치 메시지 삭제
      */
-    CompletableFuture<Void> receiveProcessAndDelete(String queueName,
-                                                   Consumer<SqsMessage> processor);
+    public CompletableFuture<Void> deleteMessageBatch(String queueUrl, List<String> receiptHandles) {
+        if (receiptHandles.size() > sqsProperties.getMaxBatchSize()) {
+            throw new IllegalArgumentException("Batch size cannot exceed " + sqsProperties.getMaxBatchSize());
+        }
+
+        List<DeleteMessageBatchRequestEntry> entries = IntStream.range(0, receiptHandles.size())
+                .mapToObj(i -> DeleteMessageBatchRequestEntry.builder()
+                        .id(String.valueOf(i))
+                        .receiptHandle(receiptHandles.get(i))
+                        .build())
+                .collect(Collectors.toList());
+
+        DeleteMessageBatchRequest request = DeleteMessageBatchRequest.builder()
+                .queueUrl(queueUrl)
+                .entries(entries)
+                .build();
+
+        return sqsAsyncClient.deleteMessageBatch(request)
+                .thenRun(() -> log.debug("Batch deleted messages from queue: {}", queueUrl));
+    }
 
     /**
-     * Long Polling으로 연속 메시지 수신
+     * 큐 생성
      */
-    void startContinuousPolling(String queueName, Consumer<SqsMessage> processor);
+    public CompletableFuture<String> createQueue(String queueName, Map<String, String> attributes) {
+        CreateQueueRequest.Builder requestBuilder = CreateQueueRequest.builder()
+                .queueName(queueName);
+        
+        if (attributes != null && !attributes.isEmpty()) {
+            // Convert String Map to QueueAttributeName Map
+            Map<QueueAttributeName, String> queueAttributes = attributes.entrySet().stream()
+                    .collect(Collectors.toMap(
+                            entry -> QueueAttributeName.fromValue(entry.getKey()),
+                            Map.Entry::getValue
+                    ));
+            requestBuilder.attributes(queueAttributes);
+        }
+
+        return sqsAsyncClient.createQueue(requestBuilder.build())
+                .thenApply(CreateQueueResponse::queueUrl);
+    }
 
     /**
-     * 폴링 중지
+     * 큐 URL 조회
      */
-    void stopPolling(String queueName);
+    public CompletableFuture<String> getQueueUrl(String queueName) {
+        GetQueueUrlRequest request = GetQueueUrlRequest.builder()
+                .queueName(queueName)
+                .build();
 
-    /**
-     * DLQ로 메시지 이동
-     */
-    CompletableFuture<Void> moveToDeadLetterQueue(String sourceQueueName, 
-                                                 String dlqName,
-                                                 String receiptHandle);
-
-    /**
-     * 큐 메시지 수 확인
-     */
-    CompletableFuture<Long> getQueueMessageCount(String queueName);
-
-    /**
-     * 큐 purge (모든 메시지 삭제)
-     */
-    CompletableFuture<Void> purgeQueue(String queueName);
-
-    /**
-     * 큐 존재 여부 확인
-     */
-    CompletableFuture<Boolean> queueExists(String queueName);
-
-    /**
-     * 큐 생성 (존재하지 않을 경우)
-     */
-    CompletableFuture<String> createQueueIfNotExists(String queueName, Map<String, String> attributes);
+        return sqsAsyncClient.getQueueUrl(request)
+                .thenApply(GetQueueUrlResponse::queueUrl);
+    }
 }

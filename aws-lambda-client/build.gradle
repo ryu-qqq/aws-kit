@@ -8,9 +8,9 @@ dependencies {
     // Spring Boot Starter (for auto-configuration)
     api 'org.springframework.boot:spring-boot-starter'
     
-    // Testing with LocalStack
+    // Testing dependencies
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.testcontainers:testcontainers'
     testImplementation 'org.testcontainers:junit-jupiter'
     testImplementation 'org.testcontainers:localstack'
-    testImplementation "cloud.localstack:localstack-utils:${localstackVersion}"
 }

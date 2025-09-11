@@ -1,0 +1,78 @@
+# DynamoDB Streams Configuration Example
+# This shows comprehensive configuration options for DynamoDB Streams
+
+aws:
+  dynamodb:
+    # Basic DynamoDB configuration
+    endpoint: http://localhost:4566  # LocalStack endpoint
+    region:
+      region: us-east-1
+      access-key: test
+      secret-key: test
+    
+    # Table configuration with streams enabled
+    table-config:
+      enable-streams: true
+      stream-view-type: NEW_AND_OLD_IMAGES  # KEYS_ONLY, NEW_IMAGE, OLD_IMAGE, NEW_AND_OLD_IMAGES
+    
+    # DynamoDB Streams configuration
+    stream:
+      enabled: true
+      default-view-type: NEW_AND_OLD_IMAGES
+      
+      # Stream processing configuration
+      processing:
+        batch-size: 25                    # Records per batch
+        batch-timeout: 5s                 # Max wait time for batch
+        parallel-processors: 2            # Number of parallel processors
+        max-retries: 3                    # Max retry attempts
+        retry-delay: 500ms                # Delay between retries
+        auto-checkpoint: true             # Enable automatic checkpointing
+        checkpoint-interval: 1m           # Checkpoint frequency
+        enable-deduplication: true        # Enable record deduplication
+        deduplication-window: 5m          # Deduplication time window
+      
+      # Stream consumer configuration
+      consumer:
+        application-name: dynamodb-stream-consumer
+        initial-position: LATEST          # TRIM_HORIZON, LATEST, AT_TIMESTAMP
+        max-records-per-request: 1000     # Max records per GetRecords call
+        idle-time-between-reads: 200ms    # Wait time between GetRecords calls
+        shard-sync-interval: 1m           # Shard discovery interval
+        enable-enhanced-fan-out: false    # Use enhanced fan-out for dedicated throughput
+        auto-renew-leases: true           # Automatically renew processing leases
+        lease-renewal-interval: 10s       # Lease renewal frequency
+      
+      # Error handling configuration
+      error-handling:
+        enable-dead-letter-queue: true    # Enable DLQ for failed records
+        dlq-table-name: dynamodb-stream-dlq
+        max-attempts-before-dlq: 5        # Max attempts before sending to DLQ
+        enable-poison-pill-detection: true
+        poison-pill-threshold: 10         # Failed attempts threshold for poison pill
+        enable-error-notifications: false # SNS notifications for errors
+        enable-auto-recovery: true        # Automatic error recovery
+        backoff-strategy: EXPONENTIAL     # FIXED, LINEAR, EXPONENTIAL
+        max-backoff: 5m                   # Maximum backoff duration
+      
+      # Metrics configuration
+      metrics:
+        enabled: true                     # Enable metrics collection
+        namespace: DynamoDBStreams        # CloudWatch namespace
+        detailed-metrics: false           # Collect detailed metrics
+        publishing-interval: 1m           # Metrics publishing frequency
+        enable-cloudwatch: true           # Publish to CloudWatch
+        enable-custom-metrics: false      # Enable custom metrics endpoint
+
+# Spring Boot configuration
+spring:
+  application:
+    name: dynamodb-streams-example
+  
+# Logging configuration for streams
+logging:
+  level:
+    com.ryuqq.aws.dynamodb.stream: DEBUG
+    software.amazon.awssdk.services.dynamodb: INFO
+  pattern:
+    console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"

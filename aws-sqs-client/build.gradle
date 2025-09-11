@@ -1,5 +1,5 @@
 dependencies {
-    // AWS SDK Commons dependency
+    // AWS SDK Commons dependency (only if needed for common configurations)
     api project(':aws-sdk-commons')
     
     // AWS SQS SDK
@@ -12,5 +12,4 @@ dependencies {
     testImplementation 'org.testcontainers:testcontainers'
     testImplementation 'org.testcontainers:junit-jupiter'
     testImplementation 'org.testcontainers:localstack'
-    testImplementation "cloud.localstack:localstack-utils:${localstackVersion}"
 }

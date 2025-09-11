@@ -13,5 +13,4 @@ dependencies {
     testImplementation 'org.testcontainers:testcontainers'
     testImplementation 'org.testcontainers:junit-jupiter'
     testImplementation 'org.testcontainers:localstack'
-    testImplementation "cloud.localstack:localstack-utils:${localstackVersion}"
 }

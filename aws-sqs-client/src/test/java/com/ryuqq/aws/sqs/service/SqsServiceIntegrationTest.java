@@ -1,36 +1,35 @@
 package com.ryuqq.aws.sqs.service;
 
-import com.ryuqq.aws.sqs.client.SqsClient;
-import com.ryuqq.aws.sqs.model.SqsMessage;
 import com.ryuqq.aws.sqs.properties.SqsProperties;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.localstack.LocalStackContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
+import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
+import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
+import software.amazon.awssdk.core.client.config.ClientOverrideConfiguration;
+import software.amazon.awssdk.http.nio.netty.NettyNioAsyncHttpClient;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.sqs.SqsAsyncClient;
+import software.amazon.awssdk.services.sqs.model.Message;
 
+import java.net.URI;
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.*;
 
 /**
- * SQS 서비스 통합 테스트
+ * SQS 서비스 LocalStack 통합 테스트
  */
-@ExtendWith(MockitoExtension.class)
 @Testcontainers
 class SqsServiceIntegrationTest {
 
@@ -40,210 +39,159 @@ class SqsServiceIntegrationTest {
             .withServices(LocalStackContainer.Service.SQS)
             .withEnv("DEFAULT_REGION", "us-east-1");
 
-    @Mock
-    private SqsClient sqsClient;
-
     private SqsService sqsService;
-    private SqsProperties sqsProperties;
+    private String testQueueUrl;
+
+    @DynamicPropertySource
+    static void configureProperties(DynamicPropertyRegistry registry) {
+        registry.add("aws.region", () -> "us-east-1");
+    }
 
     @BeforeEach
-    void setUp() {
-        sqsProperties = new SqsProperties();
-        sqsProperties.setDefaultQueueUrlPrefix(localstack.getEndpointOverride(LocalStackContainer.Service.SQS).toString() + "/000000000000/");
-        
-        sqsService = new SqsServiceImpl(sqsClient, sqsProperties);
-    }
-
-    @Test
-    void shouldSendMessage() {
-        // Given
-        String queueName = "test-queue";
-        String messageBody = "Test message";
-        String messageId = UUID.randomUUID().toString();
-
-        when(sqsClient.getQueueUrl(queueName))
-                .thenReturn(CompletableFuture.completedFuture("queue-url"));
-        when(sqsClient.sendMessage(anyString(), anyString()))
-                .thenReturn(CompletableFuture.completedFuture(messageId));
-
-        // When
-        CompletableFuture<String> result = sqsService.sendMessage(queueName, messageBody);
-
-        // Then
-        assertThat(result).isCompletedWithValue(messageId);
-        verify(sqsClient).sendMessage("queue-url", messageBody);
-    }
-
-    @Test
-    void shouldSendDelayedMessage() {
-        // Given
-        String queueName = "test-queue";
-        String messageBody = "Delayed message";
-        Duration delay = Duration.ofSeconds(10);
-        String messageId = UUID.randomUUID().toString();
-
-        when(sqsClient.getQueueUrl(queueName))
-                .thenReturn(CompletableFuture.completedFuture("queue-url"));
-        when(sqsClient.sendMessage(anyString(), anyString(), any(Map.class)))
-                .thenReturn(CompletableFuture.completedFuture(messageId));
-
-        // When
-        CompletableFuture<String> result = sqsService.sendDelayedMessage(queueName, messageBody, delay);
-
-        // Then
-        assertThat(result).isCompletedWithValue(messageId);
-        verify(sqsClient).sendMessage(eq("queue-url"), eq(messageBody), argThat(attrs ->
-                attrs.containsKey("DelaySeconds") && attrs.get("DelaySeconds").equals("10")
-        ));
-    }
-
-    @Test
-    void shouldSendMessageBatch() {
-        // Given
-        String queueName = "test-queue";
-        List<String> messages = List.of("Message 1", "Message 2", "Message 3");
-        List<String> messageIds = List.of("id1", "id2", "id3");
-
-        when(sqsClient.getQueueUrl(queueName))
-                .thenReturn(CompletableFuture.completedFuture("queue-url"));
-        when(sqsClient.sendMessages(anyString(), any(List.class)))
-                .thenReturn(CompletableFuture.completedFuture(messageIds));
-
-        // When
-        CompletableFuture<List<String>> result = sqsService.sendMessageBatch(queueName, messages);
-
-        // Then
-        assertThat(result).isCompletedWithValue(messageIds);
-        verify(sqsClient).sendMessages("queue-url", messages);
-    }
-
-    @Test
-    void shouldReceiveAndProcessMessages() throws InterruptedException {
-        // Given
-        String queueName = "test-queue";
-        CountDownLatch latch = new CountDownLatch(2);
-        AtomicReference<String> processedMessage = new AtomicReference<>();
-
-        SqsMessage message1 = SqsMessage.builder()
-                .messageId("msg1")
-                .body("Message 1")
-                .receiptHandle("receipt1")
+    void setUp() throws Exception {
+        // LocalStack용 SqsAsyncClient 구성
+        SqsAsyncClient sqsAsyncClient = SqsAsyncClient.builder()
+                .endpointOverride(localstack.getEndpointOverride(LocalStackContainer.Service.SQS))
+                .credentialsProvider(StaticCredentialsProvider.create(
+                        AwsBasicCredentials.create("test", "test")))
+                .region(Region.US_EAST_1)
+                .httpClient(NettyNioAsyncHttpClient.builder()
+                        .connectionTimeout(Duration.ofSeconds(5))
+                        .build())
+                .overrideConfiguration(ClientOverrideConfiguration.builder()
+                        .apiCallTimeout(Duration.ofSeconds(30))
+                        .apiCallAttemptTimeout(Duration.ofSeconds(30))
+                        .build())
                 .build();
 
-        SqsMessage message2 = SqsMessage.builder()
-                .messageId("msg2")
-                .body("Message 2")
-                .receiptHandle("receipt2")
-                .build();
+        SqsProperties sqsProperties = new SqsProperties();
+        sqsService = new SqsService(sqsAsyncClient, sqsProperties);
 
-        when(sqsClient.getQueueUrl(queueName))
-                .thenReturn(CompletableFuture.completedFuture("queue-url"));
-        when(sqsClient.receiveMessages(anyString(), anyInt()))
-                .thenReturn(CompletableFuture.completedFuture(List.of(message1, message2)));
-
-        // When
-        sqsService.receiveAndProcessMessages(queueName, message -> {
-            processedMessage.set(message.getBody());
-            latch.countDown();
-        });
-
-        // Then
-        assertThat(latch.await(5, TimeUnit.SECONDS)).isTrue();
-        verify(sqsClient).receiveMessages("queue-url", 10);
+        // 테스트용 큐 생성
+        testQueueUrl = sqsService.createQueue("test-queue", Map.of()).get();
     }
 
     @Test
-    void shouldReceiveProcessAndDeleteMessages() {
+    void 메시지_전송_및_수신_테스트() throws Exception {
         // Given
-        String queueName = "test-queue";
-        SqsMessage message = SqsMessage.builder()
-                .messageId("msg1")
-                .body("Message to delete")
-                .receiptHandle("receipt1")
-                .build();
+        String messageBody = "Hello from LocalStack SQS!";
 
-        when(sqsClient.getQueueUrl(queueName))
-                .thenReturn(CompletableFuture.completedFuture("queue-url"));
-        when(sqsClient.receiveMessages(anyString(), anyInt()))
-                .thenReturn(CompletableFuture.completedFuture(List.of(message)));
-        when(sqsClient.deleteMessage(anyString(), anyString()))
-                .thenReturn(CompletableFuture.completedFuture(null));
+        // When - 메시지 전송
+        String messageId = sqsService.sendMessage(testQueueUrl, messageBody).get();
 
-        // When
-        CompletableFuture<Void> result = sqsService.receiveProcessAndDelete(queueName, msg -> {
-            assertThat(msg.getBody()).isEqualTo("Message to delete");
-        });
+        // Then - 메시지 ID가 반환됨
+        assertThat(messageId).isNotNull();
 
-        // Then
-        assertThat(result).isCompleted();
-        verify(sqsClient).deleteMessage("queue-url", "receipt1");
+        // When - 메시지 수신
+        List<Message> messages = sqsService.receiveMessages(testQueueUrl, 1).get();
+
+        // Then - 메시지가 수신됨
+        assertThat(messages).hasSize(1);
+        assertThat(messages.get(0).body()).isEqualTo(messageBody);
+        assertThat(messages.get(0).messageId()).isEqualTo(messageId);
     }
 
     @Test
-    void shouldHandleBatchSizeExceeding() {
+    void 배치_메시지_전송_테스트() throws Exception {
         // Given
-        String queueName = "test-queue";
-        List<String> messages = List.of(
-                "1", "2", "3", "4", "5", "6", "7", "8", "9", "10",
-                "11", "12", "13", "14", "15" // 15 messages, exceeds batch size of 10
+        List<String> messages = Arrays.asList(
+                "Batch message 1",
+                "Batch message 2", 
+                "Batch message 3"
         );
 
-        when(sqsClient.getQueueUrl(queueName))
-                .thenReturn(CompletableFuture.completedFuture("queue-url"));
-        when(sqsClient.sendMessages(anyString(), any(List.class)))
-                .thenAnswer(invocation -> {
-                    List<String> batch = invocation.getArgument(1);
-                    return CompletableFuture.completedFuture(
-                            batch.stream().map(msg -> "id-" + msg).toList()
-                    );
-                });
+        // When - 배치 메시지 전송
+        List<String> messageIds = sqsService.sendMessageBatch(testQueueUrl, messages).get();
 
-        // When
-        CompletableFuture<List<String>> result = sqsService.sendMessageBatch(queueName, messages);
+        // Then - 모든 메시지 ID가 반환됨
+        assertThat(messageIds).hasSize(3);
+        assertThat(messageIds).allMatch(id -> id != null && !id.isEmpty());
 
-        // Then
-        assertThat(result).isCompleted();
-        assertThat(result.join()).hasSize(15);
-        verify(sqsClient, times(2)).sendMessages(anyString(), any(List.class));
+        // When - 메시지 수신
+        List<Message> receivedMessages = sqsService.receiveMessages(testQueueUrl, 10).get();
+
+        // Then - 모든 메시지가 수신됨
+        assertThat(receivedMessages).hasSize(3);
+        List<String> receivedBodies = receivedMessages.stream()
+                .map(Message::body)
+                .toList();
+        assertThat(receivedBodies).containsExactlyInAnyOrderElementsOf(messages);
     }
 
     @Test
-    void shouldCreateQueueIfNotExists() {
+    void 메시지_삭제_테스트() throws Exception {
+        // Given - 메시지 전송
+        String messageBody = "Message to delete";
+        sqsService.sendMessage(testQueueUrl, messageBody).get();
+
+        // When - 메시지 수신
+        List<Message> messages = sqsService.receiveMessages(testQueueUrl, 1).get();
+        assertThat(messages).hasSize(1);
+        
+        Message message = messages.get(0);
+        String receiptHandle = message.receiptHandle();
+
+        // When - 메시지 삭제
+        sqsService.deleteMessage(testQueueUrl, receiptHandle).get();
+
+        // Then - 메시지가 더 이상 수신되지 않음
+        List<Message> afterDelete = sqsService.receiveMessages(testQueueUrl, 1).get();
+        assertThat(afterDelete).isEmpty();
+    }
+
+    @Test
+    void 배치_메시지_삭제_테스트() throws Exception {
+        // Given - 배치 메시지 전송
+        List<String> messages = Arrays.asList("Msg1", "Msg2", "Msg3");
+        sqsService.sendMessageBatch(testQueueUrl, messages).get();
+
+        // When - 메시지 수신 및 삭제할 receiptHandle 수집
+        List<Message> receivedMessages = sqsService.receiveMessages(testQueueUrl, 10).get();
+        assertThat(receivedMessages).hasSize(3);
+        
+        List<String> receiptHandles = receivedMessages.stream()
+                .map(Message::receiptHandle)
+                .toList();
+
+        // When - 배치 삭제
+        sqsService.deleteMessageBatch(testQueueUrl, receiptHandles).get();
+
+        // Then - 메시지가 더 이상 수신되지 않음
+        List<Message> afterDelete = sqsService.receiveMessages(testQueueUrl, 10).get();
+        assertThat(afterDelete).isEmpty();
+    }
+
+    @Test
+    void 큐_URL_조회_테스트() throws Exception {
+        // When
+        String queueUrl = sqsService.getQueueUrl("test-queue").get();
+
+        // Then
+        assertThat(queueUrl).isEqualTo(testQueueUrl);
+    }
+
+    @Test
+    void 새로운_큐_생성_테스트() throws Exception {
         // Given
-        String queueName = "new-queue";
+        String newQueueName = "integration-test-queue";
         Map<String, String> attributes = Map.of(
+                "VisibilityTimeout", "60",
                 "MessageRetentionPeriod", "86400"
         );
 
-        when(sqsClient.getQueueUrl(queueName))
-                .thenReturn(CompletableFuture.failedFuture(new RuntimeException("Queue not found")))
-                .thenReturn(CompletableFuture.completedFuture("queue-url"));
-        when(sqsClient.createQueue(anyString(), any(Map.class)))
-                .thenReturn(CompletableFuture.completedFuture("queue-url"));
-
         // When
-        CompletableFuture<String> result = sqsService.createQueueIfNotExists(queueName, attributes);
+        String newQueueUrl = sqsService.createQueue(newQueueName, attributes).get();
 
         // Then
-        assertThat(result).isCompletedWithValue("queue-url");
-        verify(sqsClient).createQueue(queueName, attributes);
-    }
+        assertThat(newQueueUrl).contains(newQueueName);
 
-    @Test
-    void shouldGetQueueMessageCount() {
-        // Given
-        String queueName = "test-queue";
-        
-        when(sqsClient.getQueueUrl(queueName))
-                .thenReturn(CompletableFuture.completedFuture("queue-url"));
-        when(sqsClient.getApproximateNumberOfMessages(anyString()))
-                .thenReturn(CompletableFuture.completedFuture(42));
+        // Verify queue can be used
+        String testMessage = "Test message in new queue";
+        String messageId = sqsService.sendMessage(newQueueUrl, testMessage).get();
+        assertThat(messageId).isNotNull();
 
-        // When
-        CompletableFuture<Long> result = sqsService.getQueueMessageCount(queueName);
-
-        // Then
-        assertThat(result).isCompletedWithValue(42L);
-        verify(sqsClient).getApproximateNumberOfMessages("queue-url");
+        List<Message> messages = sqsService.receiveMessages(newQueueUrl, 1).get();
+        assertThat(messages).hasSize(1);
+        assertThat(messages.get(0).body()).isEqualTo(testMessage);
     }
 }

@@ -29,6 +29,7 @@ subprojects {
         imports {
             mavenBom "org.springframework.boot:spring-boot-dependencies:${springBootVersion}"
             mavenBom "software.amazon.awssdk:bom:${awsSdkVersion}"
+            mavenBom "org.testcontainers:testcontainers-bom:${testcontainersVersion}"
         }
     }
     

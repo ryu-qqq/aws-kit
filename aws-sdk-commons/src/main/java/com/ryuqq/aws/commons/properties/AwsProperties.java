@@ -1,69 +1,67 @@
 package com.ryuqq.aws.commons.properties;
 
-import lombok.Getter;
-import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.validation.annotation.Validated;
 
-import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import java.time.Duration;
 
 /**
- * AWS SDK 공통 설정 Properties
+ * Simplified AWS properties with only essential configuration
  */
-@Getter
-@Setter
-@Validated
 @ConfigurationProperties(prefix = "aws")
 public class AwsProperties {
 
-    @NotBlank(message = "AWS region은 필수입니다")
     private String region = "us-west-2";
+    private String accessKey;
+    private String secretKey;
+    private String endpoint;
+    private Duration timeout = Duration.ofSeconds(30);
+    private int maxRetries = 3;
 
-    @Valid
-    @NotNull
-    private Credentials credentials = new Credentials();
-
-    @Valid  
-    @NotNull
-    private ClientConfig clientConfig = new ClientConfig();
-
-    @Valid
-    @NotNull
-    private RetryPolicy retryPolicy = new RetryPolicy();
-
-    @Getter
-    @Setter
-    public static class Credentials {
-        private String accessKeyId;
-        private String secretAccessKey;
-        private String sessionToken;
-        private String profileName = "default";
-        private boolean useInstanceProfile = true;
+    public String getRegion() {
+        return region;
     }
 
-    @Getter
-    @Setter
-    public static class ClientConfig {
-        private Duration connectionTimeout = Duration.ofSeconds(10);
-        private Duration socketTimeout = Duration.ofSeconds(30);
-        private Duration apiCallTimeout = Duration.ofMinutes(2);
-        private Duration apiCallAttemptTimeout = Duration.ofSeconds(30);
-        private int maxConcurrency = 50;
-        private int maxPendingConnectionAcquires = 10000;
-        private boolean useHttp2 = true;
-        private String userAgentPrefix = "ryuqq-aws-sdk";
+    public void setRegion(String region) {
+        this.region = region;
     }
 
-    @Getter
-    @Setter
-    public static class RetryPolicy {
-        private int maxRetries = 3;
-        private Duration baseDelay = Duration.ofMillis(100);
-        private Duration maxBackoffTime = Duration.ofSeconds(20);
-        private boolean retryOnThrottling = true;
-        private boolean retryOnClientError = false;
+    public String getAccessKey() {
+        return accessKey;
+    }
+
+    public void setAccessKey(String accessKey) {
+        this.accessKey = accessKey;
+    }
+
+    public String getSecretKey() {
+        return secretKey;
+    }
+
+    public void setSecretKey(String secretKey) {
+        this.secretKey = secretKey;
+    }
+
+    public String getEndpoint() {
+        return endpoint;
+    }
+
+    public void setEndpoint(String endpoint) {
+        this.endpoint = endpoint;
+    }
+
+    public Duration getTimeout() {
+        return timeout;
+    }
+
+    public void setTimeout(Duration timeout) {
+        this.timeout = timeout;
+    }
+
+    public int getMaxRetries() {
+        return maxRetries;
+    }
+
+    public void setMaxRetries(int maxRetries) {
+        this.maxRetries = maxRetries;
     }
 }
