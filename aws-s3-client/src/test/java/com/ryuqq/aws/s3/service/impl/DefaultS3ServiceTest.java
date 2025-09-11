@@ -1,6 +1,5 @@
 package com.ryuqq.aws.s3.service.impl;
 
-import com.ryuqq.aws.commons.template.AwsOperationTemplate;
 import com.ryuqq.aws.s3.properties.S3Properties;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -26,7 +25,6 @@ import java.nio.file.Paths;
 import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.Supplier;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -48,14 +46,11 @@ class DefaultS3ServiceTest {
     @Mock
     private S3Properties s3Properties;
 
-    @Mock
-    private AwsOperationTemplate operationTemplate;
-
     private DefaultS3Service s3Service;
 
     @BeforeEach
     void setUp() {
-        s3Service = new DefaultS3Service(s3AsyncClient, transferManager, s3Presigner, s3Properties, operationTemplate);
+        s3Service = new DefaultS3Service(s3AsyncClient, transferManager, s3Presigner, s3Properties);
     }
 
     @Test
@@ -69,12 +64,6 @@ class DefaultS3ServiceTest {
         FileUpload fileUpload = mock(FileUpload.class);
         CompletedFileUpload completedUpload = mock(CompletedFileUpload.class);
         PutObjectResponse putObjectResponse = PutObjectResponse.builder().eTag(expectedETag).build();
-
-        when(operationTemplate.execute(any(Supplier.class), eq("s3"), eq("uploadFile")))
-                .thenAnswer(invocation -> {
-                    Supplier<CompletableFuture<String>> supplier = invocation.getArgument(0);
-                    return supplier.get();
-                });
 
         when(transferManager.uploadFile(any(UploadFileRequest.class))).thenReturn(fileUpload);
         when(fileUpload.completionFuture()).thenReturn(CompletableFuture.completedFuture(completedUpload));
@@ -97,12 +86,6 @@ class DefaultS3ServiceTest {
         String contentType = "text/plain";
         String expectedETag = "test-etag";
 
-        when(operationTemplate.execute(any(Supplier.class), eq("s3"), eq("uploadBytes")))
-                .thenAnswer(invocation -> {
-                    Supplier<CompletableFuture<String>> supplier = invocation.getArgument(0);
-                    return supplier.get();
-                });
-
         PutObjectResponse response = PutObjectResponse.builder().eTag(expectedETag).build();
         when(s3AsyncClient.putObject(any(PutObjectRequest.class), any(AsyncRequestBody.class)))
                 .thenReturn(CompletableFuture.completedFuture(response));
@@ -121,12 +104,6 @@ class DefaultS3ServiceTest {
         String bucket = "test-bucket";
         String key = "test-key";
         byte[] expectedContent = "test content".getBytes();
-
-        when(operationTemplate.execute(any(Supplier.class), eq("s3"), eq("downloadFile")))
-                .thenAnswer(invocation -> {
-                    Supplier<CompletableFuture<byte[]>> supplier = invocation.getArgument(0);
-                    return supplier.get();
-                });
 
         ResponseBytes<GetObjectResponse> responseBytes = mock(ResponseBytes.class);
         when(responseBytes.asByteArray()).thenReturn(expectedContent);
@@ -147,12 +124,6 @@ class DefaultS3ServiceTest {
         String bucket = "test-bucket";
         String key = "test-key";
 
-        when(operationTemplate.execute(any(Supplier.class), eq("s3"), eq("deleteObject")))
-                .thenAnswer(invocation -> {
-                    Supplier<CompletableFuture<Void>> supplier = invocation.getArgument(0);
-                    return supplier.get();
-                });
-
         DeleteObjectResponse response = DeleteObjectResponse.builder().build();
         when(s3AsyncClient.deleteObject(any(DeleteObjectRequest.class)))
                 .thenReturn(CompletableFuture.completedFuture(response));
@@ -171,12 +142,6 @@ class DefaultS3ServiceTest {
         String bucket = "test-bucket";
         String prefix = "prefix/";
         List<String> expectedKeys = List.of("prefix/file1.txt", "prefix/file2.txt");
-
-        when(operationTemplate.execute(any(Supplier.class), eq("s3"), eq("listObjects")))
-                .thenAnswer(invocation -> {
-                    Supplier<CompletableFuture<List<String>>> supplier = invocation.getArgument(0);
-                    return supplier.get();
-                });
 
         List<S3Object> s3Objects = List.of(
                 S3Object.builder().key("prefix/file1.txt").build(),
@@ -219,33 +184,4 @@ class DefaultS3ServiceTest {
         verify(s3Presigner).presignGetObject(any(GetObjectPresignRequest.class));
     }
 
-    @Test
-    void uploadLargeFile_ShouldUseTransferManager() {
-        // Given
-        String bucket = "test-bucket";
-        String key = "large-file.zip";
-        Path file = Paths.get("large-file.zip");
-        String expectedETag = "large-file-etag";
-
-        FileUpload fileUpload = mock(FileUpload.class);
-        CompletedFileUpload completedUpload = mock(CompletedFileUpload.class);
-        PutObjectResponse putObjectResponse = PutObjectResponse.builder().eTag(expectedETag).build();
-
-        when(operationTemplate.execute(any(Supplier.class), eq("s3"), eq("uploadLargeFile")))
-                .thenAnswer(invocation -> {
-                    Supplier<CompletableFuture<String>> supplier = invocation.getArgument(0);
-                    return supplier.get();
-                });
-
-        when(transferManager.uploadFile(any(UploadFileRequest.class))).thenReturn(fileUpload);
-        when(fileUpload.completionFuture()).thenReturn(CompletableFuture.completedFuture(completedUpload));
-        when(completedUpload.response()).thenReturn(putObjectResponse);
-
-        // When
-        CompletableFuture<String> result = s3Service.uploadLargeFile(bucket, key, file);
-
-        // Then
-        assertThat(result.join()).isEqualTo(expectedETag);
-        verify(transferManager).uploadFile(any(UploadFileRequest.class));
-    }
 }

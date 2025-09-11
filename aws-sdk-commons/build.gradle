@@ -13,16 +13,17 @@ bootJar {
 }
 
 dependencies {
-    // Spring Boot essentials only
-    api 'org.springframework.boot:spring-boot-starter'
-    api 'org.springframework.boot:spring-boot-configuration-processor'
+    // Spring Boot - provided by user
+    compileOnly 'org.springframework.boot:spring-boot-starter'
+    compileOnly 'org.springframework.boot:spring-boot-autoconfigure'
+    annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
     
-    // Essential AWS SDK dependencies only
+    // AWS SDK core types that are part of public API
     api 'software.amazon.awssdk:aws-core'
     api 'software.amazon.awssdk:auth'
     api 'software.amazon.awssdk:regions'
-    api 'software.amazon.awssdk:apache-client'
     
-    // Jackson for time module only (commonly needed)
-    api 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
+    // Internal dependencies - not exposed
+    implementation 'software.amazon.awssdk:apache-client'
+    implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
 }

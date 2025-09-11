@@ -1,12 +1,13 @@
 dependencies {
-    // AWS SDK Commons dependency
+    // AWS SDK Commons dependency - need to expose for Region, CredentialsProvider
     api project(':aws-sdk-commons')
     
-    // AWS Lambda SDK
-    api 'software.amazon.awssdk:lambda'
+    // AWS Lambda SDK - internal use only
+    implementation 'software.amazon.awssdk:lambda'
     
-    // Spring Boot Starter (for auto-configuration)
-    api 'org.springframework.boot:spring-boot-starter'
+    // Spring Boot - provided by user
+    compileOnly 'org.springframework.boot:spring-boot-starter'
+    compileOnly 'org.springframework.boot:spring-boot-autoconfigure'
     
     // Testing dependencies
     testImplementation 'org.springframework.boot:spring-boot-starter-test'

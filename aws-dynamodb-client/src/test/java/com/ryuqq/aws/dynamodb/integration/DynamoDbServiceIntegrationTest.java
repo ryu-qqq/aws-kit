@@ -14,13 +14,13 @@ import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.core.client.config.ClientOverrideConfiguration;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedAsyncClient;
-import software.amazon.awssdk.enhanced.dynamodb.Key;
 import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbBean;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbPartitionKey;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbSortKey;
 import software.amazon.awssdk.enhanced.dynamodb.model.CreateTableEnhancedRequest;
-import software.amazon.awssdk.enhanced.dynamodb.model.QueryConditional;
+import com.ryuqq.aws.dynamodb.types.DynamoKey;
+import com.ryuqq.aws.dynamodb.types.DynamoQuery;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.dynamodb.DynamoDbAsyncClient;
 
@@ -77,10 +77,7 @@ class DynamoDbServiceIntegrationTest {
             // Scan and delete all items
             List<User> allItems = dynamoDbService.scan(User.class, TABLE_NAME).join();
             for (User item : allItems) {
-                Key key = Key.builder()
-                        .partitionValue(item.getUserId())
-                        .sortValue(item.getProfileType())
-                        .build();
+                DynamoKey key = DynamoKey.sortKey("userId", item.getUserId(), "profileType", item.getProfileType());
                 dynamoDbService.delete(key, TABLE_NAME, User.class).join();
             }
         } catch (Exception e) {
@@ -102,7 +99,7 @@ class DynamoDbServiceIntegrationTest {
         saveResult.join();
 
         // When - Load
-        Key key = Key.builder().partitionValue("user1").sortValue("profile").build();
+        DynamoKey key = DynamoKey.sortKey("userId", "user1", "profileType", "profile");
         CompletableFuture<User> loadResult = dynamoDbService.load(User.class, key, TABLE_NAME);
         User loadedUser = loadResult.join();
 
@@ -127,9 +124,8 @@ class DynamoDbServiceIntegrationTest {
         dynamoDbService.save(user3, TABLE_NAME).join();
 
         // When
-        QueryConditional queryConditional = QueryConditional.keyEqualTo(
-                Key.builder().partitionValue("user1").build());
-        CompletableFuture<List<User>> queryResult = dynamoDbService.query(User.class, queryConditional, TABLE_NAME);
+        DynamoQuery dynamoQuery = DynamoQuery.keyEqual("userId", "user1");
+        CompletableFuture<List<User>> queryResult = dynamoDbService.query(User.class, dynamoQuery, TABLE_NAME);
         List<User> users = queryResult.join();
 
         // Then
@@ -164,7 +160,7 @@ class DynamoDbServiceIntegrationTest {
         dynamoDbService.save(user, TABLE_NAME).join();
 
         // Verify exists
-        Key key = Key.builder().partitionValue("user1").sortValue("profile").build();
+        DynamoKey key = DynamoKey.sortKey("userId", "user1", "profileType", "profile");
         User existingUser = dynamoDbService.load(User.class, key, TABLE_NAME).join();
         assertThat(existingUser).isNotNull();
 
@@ -192,7 +188,7 @@ class DynamoDbServiceIntegrationTest {
 
         // Then - Verify all users were saved
         for (User user : users) {
-            Key key = Key.builder().partitionValue(user.getUserId()).sortValue(user.getProfileType()).build();
+            DynamoKey key = DynamoKey.sortKey("userId", user.getUserId(), "profileType", user.getProfileType());
             User savedUser = dynamoDbService.load(User.class, key, TABLE_NAME).join();
             assertThat(savedUser).isNotNull();
             assertThat(savedUser.getName()).isEqualTo(user.getName());
@@ -210,9 +206,9 @@ class DynamoDbServiceIntegrationTest {
         // Save users first
         dynamoDbService.batchSave(users, TABLE_NAME).join();
 
-        List<Key> keys = List.of(
-                Key.builder().partitionValue("load1").sortValue("profile").build(),
-                Key.builder().partitionValue("load2").sortValue("profile").build()
+        List<DynamoKey> keys = List.of(
+                DynamoKey.sortKey("userId", "load1", "profileType", "profile"),
+                DynamoKey.sortKey("userId", "load2", "profileType", "profile")
         );
 
         // When

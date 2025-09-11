@@ -2,11 +2,13 @@ package com.ryuqq.aws.dynamodb.service;
 
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedAsyncClient;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbAsyncTable;
-import software.amazon.awssdk.enhanced.dynamodb.Key;
 import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
 import software.amazon.awssdk.enhanced.dynamodb.model.*;
-import software.amazon.awssdk.services.dynamodb.model.TransactWriteItem;
 import software.amazon.awssdk.services.dynamodb.model.TransactWriteItemsRequest;
+import com.ryuqq.aws.dynamodb.types.DynamoKey;
+import com.ryuqq.aws.dynamodb.types.DynamoQuery;
+import com.ryuqq.aws.dynamodb.types.DynamoTransaction;
+import com.ryuqq.aws.dynamodb.adapter.DynamoTypeAdapter;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -32,22 +34,22 @@ public class DefaultDynamoDbService<T> implements DynamoDbService<T> {
     }
 
     @Override
-    public CompletableFuture<T> load(Class<T> itemClass, Key key, String tableName) {
+    public CompletableFuture<T> load(Class<T> itemClass, DynamoKey key, String tableName) {
         DynamoDbAsyncTable<T> table = getTable(itemClass, tableName);
-        return table.getItem(key);
+        return table.getItem(DynamoTypeAdapter.toAwsKey(key));
     }
 
     @Override
-    public CompletableFuture<Void> delete(Key key, String tableName, Class<T> itemClass) {
+    public CompletableFuture<Void> delete(DynamoKey key, String tableName, Class<T> itemClass) {
         DynamoDbAsyncTable<T> table = getTable(itemClass, tableName);
-        return table.deleteItem(key).thenApply(item -> null);
+        return table.deleteItem(DynamoTypeAdapter.toAwsKey(key)).thenApply(item -> null);
     }
 
     @Override
-    public CompletableFuture<List<T>> query(Class<T> itemClass, QueryConditional queryConditional, String tableName) {
+    public CompletableFuture<List<T>> query(Class<T> itemClass, DynamoQuery dynamoQuery, String tableName) {
         DynamoDbAsyncTable<T> table = getTable(itemClass, tableName);
         QueryEnhancedRequest request = QueryEnhancedRequest.builder()
-                .queryConditional(queryConditional)
+                .queryConditional(DynamoTypeAdapter.toAwsQueryConditional(dynamoQuery))
                 .build();
         
         // Collect all pages using CompletableFuture
@@ -111,7 +113,7 @@ public class DefaultDynamoDbService<T> implements DynamoDbService<T> {
     }
 
     @Override
-    public CompletableFuture<List<T>> batchLoad(Class<T> itemClass, List<Key> keys, String tableName) {
+    public CompletableFuture<List<T>> batchLoad(Class<T> itemClass, List<DynamoKey> keys, String tableName) {
         if (keys.isEmpty()) {
             return CompletableFuture.completedFuture(List.of());
         }
@@ -120,7 +122,9 @@ public class DefaultDynamoDbService<T> implements DynamoDbService<T> {
         ReadBatch.Builder<T> batchBuilder = ReadBatch.builder(itemClass)
                 .mappedTableResource(table);
 
-        keys.forEach(batchBuilder::addGetItem);
+        keys.stream()
+                .map(DynamoTypeAdapter::toAwsKey)
+                .forEach(batchBuilder::addGetItem);
 
         BatchGetItemEnhancedRequest request = BatchGetItemEnhancedRequest.builder()
                 .readBatches(batchBuilder.build())
@@ -145,9 +149,9 @@ public class DefaultDynamoDbService<T> implements DynamoDbService<T> {
     }
 
     @Override
-    public CompletableFuture<Void> transactWrite(List<TransactWriteItem> items) {
+    public CompletableFuture<Void> transactWrite(DynamoTransaction transaction) {
         TransactWriteItemsRequest request = TransactWriteItemsRequest.builder()
-                .transactItems(items)
+                .transactItems(DynamoTypeAdapter.toAwsTransactWriteItems(transaction))
                 .build();
 
         // Need to get the underlying DynamoDB client

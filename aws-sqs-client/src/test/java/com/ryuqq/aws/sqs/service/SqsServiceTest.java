@@ -8,6 +8,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import software.amazon.awssdk.services.sqs.SqsAsyncClient;
 import software.amazon.awssdk.services.sqs.model.*;
+import com.ryuqq.aws.sqs.types.SqsMessage;
 
 import java.util.Arrays;
 import java.util.List;
@@ -122,12 +123,12 @@ class SqsServiceTest {
                 .thenReturn(CompletableFuture.completedFuture(response));
 
         // When
-        CompletableFuture<List<Message>> result = sqsService.receiveMessages(QUEUE_URL, 5);
+        CompletableFuture<List<SqsMessage>> result = sqsService.receiveMessages(QUEUE_URL, 5);
 
         // Then
-        List<Message> messages = result.join();
+        List<SqsMessage> messages = result.join();
         assertThat(messages).hasSize(1);
-        assertThat(messages.get(0).messageId()).isEqualTo(MESSAGE_ID);
+        assertThat(messages.get(0).getMessageId()).isEqualTo(MESSAGE_ID);
         
         verify(sqsAsyncClient).receiveMessage(any(ReceiveMessageRequest.class));
     }

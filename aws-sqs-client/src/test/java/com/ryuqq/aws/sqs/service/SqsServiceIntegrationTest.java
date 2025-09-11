@@ -13,10 +13,9 @@ import org.testcontainers.utility.DockerImageName;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.core.client.config.ClientOverrideConfiguration;
-import software.amazon.awssdk.http.nio.netty.NettyNioAsyncHttpClient;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.sqs.SqsAsyncClient;
-import software.amazon.awssdk.services.sqs.model.Message;
+import com.ryuqq.aws.sqs.types.SqsMessage;
 
 import java.net.URI;
 import java.time.Duration;
@@ -55,9 +54,6 @@ class SqsServiceIntegrationTest {
                 .credentialsProvider(StaticCredentialsProvider.create(
                         AwsBasicCredentials.create("test", "test")))
                 .region(Region.US_EAST_1)
-                .httpClient(NettyNioAsyncHttpClient.builder()
-                        .connectionTimeout(Duration.ofSeconds(5))
-                        .build())
                 .overrideConfiguration(ClientOverrideConfiguration.builder()
                         .apiCallTimeout(Duration.ofSeconds(30))
                         .apiCallAttemptTimeout(Duration.ofSeconds(30))
@@ -83,12 +79,12 @@ class SqsServiceIntegrationTest {
         assertThat(messageId).isNotNull();
 
         // When - 메시지 수신
-        List<Message> messages = sqsService.receiveMessages(testQueueUrl, 1).get();
+        List<SqsMessage> messages = sqsService.receiveMessages(testQueueUrl, 1).get();
 
         // Then - 메시지가 수신됨
         assertThat(messages).hasSize(1);
-        assertThat(messages.get(0).body()).isEqualTo(messageBody);
-        assertThat(messages.get(0).messageId()).isEqualTo(messageId);
+        assertThat(messages.get(0).getBody()).isEqualTo(messageBody);
+        assertThat(messages.get(0).getMessageId()).isEqualTo(messageId);
     }
 
     @Test
@@ -108,12 +104,12 @@ class SqsServiceIntegrationTest {
         assertThat(messageIds).allMatch(id -> id != null && !id.isEmpty());
 
         // When - 메시지 수신
-        List<Message> receivedMessages = sqsService.receiveMessages(testQueueUrl, 10).get();
+        List<SqsMessage> receivedMessages = sqsService.receiveMessages(testQueueUrl, 10).get();
 
         // Then - 모든 메시지가 수신됨
         assertThat(receivedMessages).hasSize(3);
         List<String> receivedBodies = receivedMessages.stream()
-                .map(Message::body)
+                .map(SqsMessage::getBody)
                 .toList();
         assertThat(receivedBodies).containsExactlyInAnyOrderElementsOf(messages);
     }
@@ -125,17 +121,17 @@ class SqsServiceIntegrationTest {
         sqsService.sendMessage(testQueueUrl, messageBody).get();
 
         // When - 메시지 수신
-        List<Message> messages = sqsService.receiveMessages(testQueueUrl, 1).get();
+        List<SqsMessage> messages = sqsService.receiveMessages(testQueueUrl, 1).get();
         assertThat(messages).hasSize(1);
         
-        Message message = messages.get(0);
-        String receiptHandle = message.receiptHandle();
+        SqsMessage message = messages.get(0);
+        String receiptHandle = message.getReceiptHandle();
 
         // When - 메시지 삭제
         sqsService.deleteMessage(testQueueUrl, receiptHandle).get();
 
         // Then - 메시지가 더 이상 수신되지 않음
-        List<Message> afterDelete = sqsService.receiveMessages(testQueueUrl, 1).get();
+        List<SqsMessage> afterDelete = sqsService.receiveMessages(testQueueUrl, 1).get();
         assertThat(afterDelete).isEmpty();
     }
 
@@ -146,18 +142,18 @@ class SqsServiceIntegrationTest {
         sqsService.sendMessageBatch(testQueueUrl, messages).get();
 
         // When - 메시지 수신 및 삭제할 receiptHandle 수집
-        List<Message> receivedMessages = sqsService.receiveMessages(testQueueUrl, 10).get();
+        List<SqsMessage> receivedMessages = sqsService.receiveMessages(testQueueUrl, 10).get();
         assertThat(receivedMessages).hasSize(3);
         
         List<String> receiptHandles = receivedMessages.stream()
-                .map(Message::receiptHandle)
+                .map(SqsMessage::getReceiptHandle)
                 .toList();
 
         // When - 배치 삭제
         sqsService.deleteMessageBatch(testQueueUrl, receiptHandles).get();
 
         // Then - 메시지가 더 이상 수신되지 않음
-        List<Message> afterDelete = sqsService.receiveMessages(testQueueUrl, 10).get();
+        List<SqsMessage> afterDelete = sqsService.receiveMessages(testQueueUrl, 10).get();
         assertThat(afterDelete).isEmpty();
     }
 
@@ -190,8 +186,8 @@ class SqsServiceIntegrationTest {
         String messageId = sqsService.sendMessage(newQueueUrl, testMessage).get();
         assertThat(messageId).isNotNull();
 
-        List<Message> messages = sqsService.receiveMessages(newQueueUrl, 1).get();
+        List<SqsMessage> messages = sqsService.receiveMessages(newQueueUrl, 1).get();
         assertThat(messages).hasSize(1);
-        assertThat(messages.get(0).body()).isEqualTo(testMessage);
+        assertThat(messages.get(0).getBody()).isEqualTo(testMessage);
     }
 }

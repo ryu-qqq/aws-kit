@@ -1,8 +1,8 @@
 package com.ryuqq.aws.dynamodb.service;
 
-import software.amazon.awssdk.enhanced.dynamodb.Key;
-import software.amazon.awssdk.enhanced.dynamodb.model.QueryConditional;
-import software.amazon.awssdk.services.dynamodb.model.TransactWriteItem;
+import com.ryuqq.aws.dynamodb.types.DynamoKey;
+import com.ryuqq.aws.dynamodb.types.DynamoQuery;
+import com.ryuqq.aws.dynamodb.types.DynamoTransaction;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -29,7 +29,7 @@ public interface DynamoDbService<T> {
      * @param tableName the table name
      * @return CompletableFuture with the loaded item
      */
-    CompletableFuture<T> load(Class<T> itemClass, Key key, String tableName);
+    CompletableFuture<T> load(Class<T> itemClass, DynamoKey key, String tableName);
 
     /**
      * Delete an item by key
@@ -39,7 +39,7 @@ public interface DynamoDbService<T> {
      * @param itemClass the item class
      * @return CompletableFuture that completes when delete is done
      */
-    CompletableFuture<Void> delete(Key key, String tableName, Class<T> itemClass);
+    CompletableFuture<Void> delete(DynamoKey key, String tableName, Class<T> itemClass);
 
     /**
      * Query items with query conditional
@@ -49,7 +49,7 @@ public interface DynamoDbService<T> {
      * @param tableName the table name
      * @return CompletableFuture with query results
      */
-    CompletableFuture<List<T>> query(Class<T> itemClass, QueryConditional queryConditional, String tableName);
+    CompletableFuture<List<T>> query(Class<T> itemClass, DynamoQuery dynamoQuery, String tableName);
 
     /**
      * Scan all items in table
@@ -77,7 +77,7 @@ public interface DynamoDbService<T> {
      * @param tableName the table name
      * @return CompletableFuture with loaded items
      */
-    CompletableFuture<List<T>> batchLoad(Class<T> itemClass, List<Key> keys, String tableName);
+    CompletableFuture<List<T>> batchLoad(Class<T> itemClass, List<DynamoKey> keys, String tableName);
 
     /**
      * Execute transaction write
@@ -85,5 +85,5 @@ public interface DynamoDbService<T> {
      * @param items the transaction write items
      * @return CompletableFuture that completes when transaction is done
      */
-    CompletableFuture<Void> transactWrite(List<TransactWriteItem> items);
+    CompletableFuture<Void> transactWrite(DynamoTransaction transaction);
 }

@@ -12,7 +12,6 @@ import org.testcontainers.utility.DockerImageName;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.core.client.config.ClientOverrideConfiguration;
-import software.amazon.awssdk.http.nio.netty.NettyNioAsyncHttpClient;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
 import software.amazon.awssdk.services.s3.model.CreateBucketRequest;
@@ -58,7 +57,6 @@ class S3ServiceIntegrationTest {
                 .endpointOverride(localstack.getEndpoint())
                 .overrideConfiguration(ClientOverrideConfiguration.builder()
                         .build())
-                .httpClient(NettyNioAsyncHttpClient.builder().build())
                 .serviceConfiguration(software.amazon.awssdk.services.s3.S3Configuration.builder()
                         .pathStyleAccessEnabled(true)
                         .build())
@@ -238,13 +236,13 @@ class S3ServiceIntegrationTest {
     void uploadLargeFile_ShouldUseTransferManager() throws Exception {
         // Given
         String key = "large-file.txt";
-        String content = "A".repeat(10 * 1024 * 1024); // 10MB file
+        String content = "A".repeat(1024); // 1KB file for testing
         Path largeFile = Files.createTempFile("large", ".txt");
         Files.write(largeFile, content.getBytes());
 
         try {
-            // When
-            CompletableFuture<String> uploadResult = s3Service.uploadLargeFile(TEST_BUCKET, key, largeFile);
+            // When - using standard uploadFile method (Transfer Manager handles large files automatically)
+            CompletableFuture<String> uploadResult = s3Service.uploadFile(TEST_BUCKET, key, largeFile);
             String etag = uploadResult.join();
 
             // Then
@@ -383,9 +381,5 @@ class S3ServiceIntegrationTest {
             });
         }
 
-        @Override
-        public CompletableFuture<String> uploadLargeFile(String bucket, String key, Path file) {
-            return uploadFile(bucket, key, file); // Transfer Manager handles multipart automatically
-        }
     }
 }

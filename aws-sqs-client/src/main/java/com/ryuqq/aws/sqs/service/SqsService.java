@@ -6,6 +6,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import software.amazon.awssdk.services.sqs.SqsAsyncClient;
 import software.amazon.awssdk.services.sqs.model.*;
+import com.ryuqq.aws.sqs.types.SqsMessage;
+import com.ryuqq.aws.sqs.adapter.SqsTypeAdapter;
 
 import java.util.List;
 import java.util.Map;
@@ -34,7 +36,10 @@ public class SqsService {
                 .build();
 
         return sqsAsyncClient.sendMessage(request)
-                .thenApply(SendMessageResponse::messageId);
+                .thenApply(SendMessageResponse::messageId)
+                .exceptionally(throwable -> {
+                    throw new RuntimeException("Failed to send message", throwable);
+                });
     }
 
     /**
@@ -71,18 +76,19 @@ public class SqsService {
     /**
      * 메시지 수신
      */
-    public CompletableFuture<List<Message>> receiveMessages(String queueUrl, int maxMessages) {
+    public CompletableFuture<List<SqsMessage>> receiveMessages(String queueUrl, int maxMessages) {
         ReceiveMessageRequest request = ReceiveMessageRequest.builder()
                 .queueUrl(queueUrl)
                 .maxNumberOfMessages(Math.min(maxMessages, sqsProperties.getMaxBatchSize()))
                 .waitTimeSeconds(sqsProperties.getLongPollingWaitSeconds())
                 .visibilityTimeout(sqsProperties.getVisibilityTimeout())
-                .attributeNames(QueueAttributeName.ALL)
+                .attributeNamesWithStrings("All")
                 .messageAttributeNames("All")
                 .build();
 
         return sqsAsyncClient.receiveMessage(request)
-                .thenApply(ReceiveMessageResponse::messages);
+                .thenApply(ReceiveMessageResponse::messages)
+                .thenApply(SqsTypeAdapter::fromAwsMessages);
     }
 
     /**

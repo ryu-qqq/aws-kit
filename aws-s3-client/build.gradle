@@ -1,15 +1,17 @@
 dependencies {
-    // AWS SDK Commons dependency
+    // AWS SDK Commons dependency - need to expose for Region, CredentialsProvider
     api project(':aws-sdk-commons')
     
-    // AWS S3 SDK
-    api 'software.amazon.awssdk:s3'
-    api 'software.amazon.awssdk:s3-transfer-manager'
+    // AWS S3 SDK - only expose what's needed in public API
+    implementation 'software.amazon.awssdk:s3'
+    implementation 'software.amazon.awssdk:s3-transfer-manager'
     
-    // Spring Boot Starter (for auto-configuration)
-    api 'org.springframework.boot:spring-boot-starter'
+    // Spring Boot - provided by user
+    compileOnly 'org.springframework.boot:spring-boot-starter'
+    compileOnly 'org.springframework.boot:spring-boot-autoconfigure'
     
     // Testing with LocalStack
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.testcontainers:testcontainers'
     testImplementation 'org.testcontainers:junit-jupiter'
     testImplementation 'org.testcontainers:localstack'

@@ -1,13 +1,13 @@
 dependencies {
-    // AWS SDK Commons dependency
+    // AWS SDK Commons dependency - need to expose for Region, CredentialsProvider
     api project(':aws-sdk-commons')
     
-    // Spring Boot Starter (for auto-configuration)
-    api 'org.springframework.boot:spring-boot-starter'
-    api 'org.springframework.boot:spring-boot-autoconfigure'
+    // DynamoDB Enhanced Client - internal implementation only
+    implementation 'software.amazon.awssdk:dynamodb-enhanced'
     
-    // AWS SDK DynamoDB Enhanced Client
-    api 'software.amazon.awssdk:dynamodb-enhanced'
+    // Spring Boot - provided by user
+    compileOnly 'org.springframework.boot:spring-boot-starter'
+    compileOnly 'org.springframework.boot:spring-boot-autoconfigure'
     
     // Testing dependencies
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
