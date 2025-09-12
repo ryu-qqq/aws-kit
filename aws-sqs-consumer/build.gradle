@@ -1,0 +1,23 @@
+dependencies {
+    // AWS SDK Commons and SQS Client dependencies
+    api project(':aws-sdk-commons')
+    api project(':aws-sqs-client')
+    
+    // Spring Boot - required for annotation processing and lifecycle management
+    implementation 'org.springframework.boot:spring-boot-starter'
+    implementation 'org.springframework.boot:spring-boot-autoconfigure'
+    
+    // Additional Spring support
+    implementation 'org.springframework:spring-context'
+    implementation 'org.springframework:spring-aop'
+    
+    // Jackson for secure JSON serialization (security fix for DLQ handling)
+    implementation 'com.fasterxml.jackson.core:jackson-databind'
+    implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
+    
+    // Testing with LocalStack
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.testcontainers:testcontainers'
+    testImplementation 'org.testcontainers:junit-jupiter'
+    testImplementation 'org.testcontainers:localstack'
+}

@@ -3,6 +3,7 @@ package com.ryuqq.aws.dynamodb.service;
 import com.ryuqq.aws.dynamodb.types.DynamoKey;
 import com.ryuqq.aws.dynamodb.types.DynamoQuery;
 import com.ryuqq.aws.dynamodb.types.DynamoTransaction;
+import com.ryuqq.aws.dynamodb.util.TableNameResolver;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -86,4 +87,11 @@ public interface DynamoDbService<T> {
      * @return CompletableFuture that completes when transaction is done
      */
     CompletableFuture<Void> transactWrite(DynamoTransaction transaction);
+
+    /**
+     * Get the current TableNameResolver used by this service
+     * 
+     * @return the TableNameResolver instance
+     */
+    TableNameResolver getTableNameResolver();
 }
