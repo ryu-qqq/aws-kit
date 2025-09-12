@@ -1,22 +1,37 @@
 package com.ryuqq.aws.sqs.service;
 
-import com.ryuqq.aws.sqs.properties.SqsProperties;
-import com.ryuqq.aws.sqs.util.BatchValidationUtils;
-import com.ryuqq.aws.sqs.util.BatchEntryFactory;
-import com.ryuqq.aws.sqs.util.QueueAttributeUtils;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
 import software.amazon.awssdk.services.sqs.SqsAsyncClient;
-import software.amazon.awssdk.services.sqs.model.*;
-import com.ryuqq.aws.sqs.types.SqsMessage;
-import com.ryuqq.aws.sqs.adapter.SqsTypeAdapter;
+import software.amazon.awssdk.services.sqs.model.CreateQueueRequest;
+import software.amazon.awssdk.services.sqs.model.CreateQueueResponse;
+import software.amazon.awssdk.services.sqs.model.DeleteMessageBatchRequest;
+import software.amazon.awssdk.services.sqs.model.DeleteMessageBatchRequestEntry;
+import software.amazon.awssdk.services.sqs.model.DeleteMessageRequest;
+import software.amazon.awssdk.services.sqs.model.GetQueueUrlRequest;
+import software.amazon.awssdk.services.sqs.model.GetQueueUrlResponse;
+import software.amazon.awssdk.services.sqs.model.QueueAttributeName;
+import software.amazon.awssdk.services.sqs.model.ReceiveMessageRequest;
+import software.amazon.awssdk.services.sqs.model.ReceiveMessageResponse;
+import software.amazon.awssdk.services.sqs.model.SendMessageBatchRequest;
+import software.amazon.awssdk.services.sqs.model.SendMessageBatchRequestEntry;
+import software.amazon.awssdk.services.sqs.model.SendMessageBatchResultEntry;
+import software.amazon.awssdk.services.sqs.model.SendMessageRequest;
+import software.amazon.awssdk.services.sqs.model.SendMessageResponse;
 
+import com.ryuqq.aws.sqs.adapter.SqsTypeAdapter;
+import com.ryuqq.aws.sqs.properties.SqsProperties;
+import com.ryuqq.aws.sqs.types.SqsMessage;
+import com.ryuqq.aws.sqs.util.BatchEntryFactory;
+import com.ryuqq.aws.sqs.util.BatchValidationUtils;
+import com.ryuqq.aws.sqs.util.QueueAttributeUtils;
+
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
-import java.util.Collections;
+
+import org.springframework.stereotype.Service;
 
 /**
  * AWS SQS(Simple Queue Service) 클라이언트 서비스
@@ -45,11 +60,15 @@ import java.util.Collections;
  */
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class SqsService {
 
     private final SqsAsyncClient sqsAsyncClient;
     private final SqsProperties sqsProperties;
+
+    public SqsService(SqsAsyncClient sqsAsyncClient, SqsProperties sqsProperties) {
+        this.sqsAsyncClient = sqsAsyncClient;
+        this.sqsProperties = sqsProperties;
+    }
 
     /**
      * SQS 큐에 단일 메시지를 비동기로 전송합니다.

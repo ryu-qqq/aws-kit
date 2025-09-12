@@ -161,9 +161,9 @@ class SecretsServiceTest {
     void shouldParseSecretAsJsonMap() {
         // Given
         Map<String, Object> expectedMap = new HashMap<>();
-        expectedMap.put("username", "admin");
-        expectedMap.put("password", "secret123");
-        String jsonValue = "{\"username\":\"admin\",\"password\":\"secret123\"}";
+        expectedMap.put("username", "testuser");
+        expectedMap.put("password", "testvalue123");
+        String jsonValue = "{\"username\":\"testuser\",\"password\":\"testvalue123\"}";
 
         when(cacheManager.get(eq(SECRET_NAME), any(Function.class)))
                 .thenReturn(CompletableFuture.completedFuture(jsonValue));
@@ -180,8 +180,8 @@ class SecretsServiceTest {
     @DisplayName("Should parse secret as specific type")
     void shouldParseSecretAsSpecificType() {
         // Given
-        TestCredentials expected = new TestCredentials("admin", "secret123");
-        String jsonValue = "{\"username\":\"admin\",\"password\":\"secret123\"}";
+        TestCredentials expected = new TestCredentials("testuser", "testvalue123");
+        String jsonValue = "{\"username\":\"testuser\",\"password\":\"testvalue123\"}";
 
         when(cacheManager.get(eq(SECRET_NAME), any(Function.class)))
                 .thenReturn(CompletableFuture.completedFuture(jsonValue));

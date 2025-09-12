@@ -81,7 +81,7 @@ class SecretsIntegrationTest {
     void createSecret_문자열시크릿_생성성공() {
         // Given
         String secretName = "integration-test-secret";
-        String secretValue = "super-secret-password-123";
+        String secretValue = "test-value-123";
 
         // When
         CompletableFuture<String> future = secretsService.createSecret(secretName, secretValue);
@@ -101,7 +101,7 @@ class SecretsIntegrationTest {
         // Given
         String secretName = "integration-json-secret";
         DatabaseCredentials credentials = new DatabaseCredentials(
-            "localhost", 5432, "myapp", "app_user", "complex_password_456");
+            "localhost", 5432, "myapp", "testuser", "testvalue456");
 
         // When
         CompletableFuture<String> future = secretsService.createSecret(secretName, credentials);
@@ -125,7 +125,7 @@ class SecretsIntegrationTest {
         
         // Then
         String value = future.join();
-        assertThat(value).isEqualTo("super-secret-password-123");
+        assertThat(value).isEqualTo("test-value-123");
     }
 
     @Test
@@ -144,8 +144,8 @@ class SecretsIntegrationTest {
         assertThat(credentials.host()).isEqualTo("localhost");
         assertThat(credentials.port()).isEqualTo(5432);
         assertThat(credentials.database()).isEqualTo("myapp");
-        assertThat(credentials.username()).isEqualTo("app_user");
-        assertThat(credentials.password()).isEqualTo("complex_password_456");
+        assertThat(credentials.username()).isEqualTo("testuser");
+        assertThat(credentials.password()).isEqualTo("testvalue456");
     }
 
     @Test
@@ -198,11 +198,11 @@ class SecretsIntegrationTest {
     void updateSecret_시크릿업데이트_캐시무효화확인() {
         // Given
         String secretName = "integration-test-secret";
-        String newValue = "updated-secret-password-789";
+        String newValue = "updated-test-value-789";
         
         // Ensure secret is cached
         String originalValue = secretsService.getSecret(secretName).join();
-        assertThat(originalValue).isEqualTo("super-secret-password-123");
+        assertThat(originalValue).isEqualTo("test-value-123");
 
         // When
         CompletableFuture<String> future = secretsService.updateSecret(secretName, newValue);
@@ -222,7 +222,7 @@ class SecretsIntegrationTest {
         // Given
         String secretName = "integration-json-secret";
         DatabaseCredentials updatedCredentials = new DatabaseCredentials(
-            "prod-db.example.com", 5432, "production", "prod_user", "secure_prod_pass");
+            "prod-db.example.com", 5432, "production", "produser", "testprodvalue");
 
         // When
         CompletableFuture<String> future = secretsService.updateSecret(secretName, updatedCredentials);
@@ -235,7 +235,7 @@ class SecretsIntegrationTest {
         DatabaseCredentials retrieved = secretsService.getSecret(secretName, DatabaseCredentials.class).join();
         assertThat(retrieved.host()).isEqualTo("prod-db.example.com");
         assertThat(retrieved.database()).isEqualTo("production");
-        assertThat(retrieved.username()).isEqualTo("prod_user");
+        assertThat(retrieved.username()).isEqualTo("produser");
     }
 
     @Test
@@ -400,17 +400,17 @@ class SecretsIntegrationTest {
                 "host", "db.example.com",
                 "port", 5432,
                 "name", "myapp",
-                "username", "app_user",
-                "password", "db_secure_pass"
+                "username", "dbuser",
+                "password", "dbtestvalue"
             ),
             "redis", Map.of(
                 "host", "redis.example.com",
                 "port", 6379,
-                "password", "redis_pass"
+                "password", "redistest"
             ),
             "external-api", Map.of(
-                "key", "api_key_12345",
-                "secret", "api_secret_67890",
+                "key", "testkey12345",
+                "secret", "testsecret67890",
                 "endpoint", "https://api.example.com"
             )
         );
@@ -434,7 +434,7 @@ class SecretsIntegrationTest {
         @SuppressWarnings("unchecked")
         Map<String, Object> dbConfig = (Map<String, Object>) retrievedConfig.get("database");
         assertThat(dbConfig.get("host")).isEqualTo("db.example.com");
-        assertThat(dbConfig.get("username")).isEqualTo("app_user");
+        assertThat(dbConfig.get("username")).isEqualTo("dbuser");
         
         System.out.printf("Application config loaded in %d ms%n", loadTime);
         assertThat(loadTime).isLessThan(2000); // Should load quickly

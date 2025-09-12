@@ -21,8 +21,6 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * 
  * @since 1.0.0
  */
-@Getter
-@Setter
 @ConfigurationProperties(prefix = "aws.sqs")
 public class SqsProperties {
 
@@ -80,4 +78,28 @@ public class SqsProperties {
      * @default 30초 (일반적인 메시지 처리 시간)
      */
     private int visibilityTimeout = 30;
+
+    public int getLongPollingWaitSeconds() {
+        return longPollingWaitSeconds;
+    }
+
+    public int getMaxBatchSize() {
+        return maxBatchSize;
+    }
+
+    public int getVisibilityTimeout() {
+        return visibilityTimeout;
+    }
+
+    public void setLongPollingWaitSeconds(int longPollingWaitSeconds) {
+        this.longPollingWaitSeconds = longPollingWaitSeconds;
+    }
+
+    public void setMaxBatchSize(int maxBatchSize) {
+        this.maxBatchSize = maxBatchSize;
+    }
+
+    public void setVisibilityTimeout(int visibilityTimeout) {
+        this.visibilityTimeout = visibilityTimeout;
+    }
 }
