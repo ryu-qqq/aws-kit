@@ -1,0 +1,88 @@
+plugins {
+    id 'java-library'
+    id 'jacoco'
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
+}
+
+
+jacoco {
+    toolVersion = "0.8.10"
+}
+
+jacocoTestReport {
+    reports {
+        xml.required = true
+        html.required = true
+        csv.required = false
+    }
+    afterEvaluate {
+        classDirectories.setFrom(files(classDirectories.files.collect {
+            fileTree(dir: it, exclude: [
+                '**/*Properties*',
+                '**/*AutoConfiguration*'
+            ])
+        }))
+    }
+}
+
+test {
+    useJUnitPlatform()
+    finalizedBy jacocoTestReport
+    
+    testLogging {
+        events "passed", "skipped", "failed"
+        showStandardStreams = false
+    }
+    
+    systemProperty 'junit.jupiter.execution.parallel.enabled', 'true'
+    systemProperty 'junit.jupiter.execution.parallel.mode.default', 'concurrent'
+    maxParallelForks = Runtime.runtime.availableProcessors()
+}
+
+jacocoTestCoverageVerification {
+    violationRules {
+        rule {
+            limit {
+                counter = 'METHOD'
+                value = 'COVEREDRATIO'
+                minimum = 0.80
+            }
+        }
+        rule {
+            limit {
+                counter = 'INSTRUCTION'
+                value = 'COVEREDRATIO'
+                minimum = 0.80
+            }
+        }
+    }
+}
+
+dependencies {
+    // AWS SDK
+    implementation 'software.amazon.awssdk:sns'
+    
+    // AWS Kit Commons
+    implementation project(':aws-sdk-commons')
+    
+    // Spring Boot
+    compileOnly 'org.springframework.boot:spring-boot-starter'
+    compileOnly 'org.springframework.boot:spring-boot-autoconfigure'
+    compileOnly 'org.springframework.boot:spring-boot-configuration-processor'
+    
+    // Jackson
+    implementation 'com.fasterxml.jackson.core:jackson-databind'
+    
+    // Test - Additional dependencies
+    testImplementation 'org.awaitility:awaitility'
+    testImplementation 'org.testcontainers:testcontainers'
+    testImplementation 'org.testcontainers:localstack'
+    
+    // Performance Testing - JMH
+    testImplementation 'org.openjdk.jmh:jmh-core:1.37'
+    testAnnotationProcessor 'org.openjdk.jmh:jmh-generator-annprocess:1.37'
+}

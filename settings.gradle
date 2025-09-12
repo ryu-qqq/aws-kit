@@ -19,6 +19,9 @@ include 'aws-sdk-commons'
 
 // Client modules
 include 'aws-sqs-client'  
+include 'aws-sqs-consumer'
 include 'aws-dynamodb-client'
 include 'aws-s3-client'
 include 'aws-lambda-client'
+include 'aws-sns-client'
+include 'aws-secrets-client'

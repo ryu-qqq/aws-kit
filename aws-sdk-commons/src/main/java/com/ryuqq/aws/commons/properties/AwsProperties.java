@@ -10,7 +10,7 @@ import java.time.Duration;
 @ConfigurationProperties(prefix = "aws")
 public class AwsProperties {
 
-    private String region = "us-west-2";
+    private String region = "ap-northeast-2";
     private String accessKey;
     private String secretKey;
     private String endpoint;
