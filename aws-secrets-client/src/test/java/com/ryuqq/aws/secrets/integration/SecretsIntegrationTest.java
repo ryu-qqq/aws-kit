@@ -102,7 +102,7 @@ class SecretsIntegrationTest {
         // Given
         String secretName = "integration-json-secret";
         DatabaseCredentials credentials = new DatabaseCredentials(
-            "localhost", 5432, "myapp", "testuser", "testvalue456");
+            "localhost", 5432, "myapp", "testuser", "fake-test-password");
 
         // When
         CompletableFuture<String> future = secretsService.createSecret(secretName, credentials);
@@ -146,7 +146,7 @@ class SecretsIntegrationTest {
         assertThat(credentials.port()).isEqualTo(5432);
         assertThat(credentials.database()).isEqualTo("myapp");
         assertThat(credentials.username()).isEqualTo("testuser");
-        assertThat(credentials.password()).isEqualTo("testvalue456");
+        assertThat(credentials.password()).isEqualTo("fake-test-password");
     }
 
     @Test
@@ -223,7 +223,7 @@ class SecretsIntegrationTest {
         // Given
         String secretName = "integration-json-secret";
         DatabaseCredentials updatedCredentials = new DatabaseCredentials(
-            "prod-db.example.com", 5432, "production", "produser", "testprodvalue");
+            "prod-db.example.com", 5432, "production", "produser", "fake-prod-password");
 
         // When
         CompletableFuture<String> future = secretsService.updateSecret(secretName, updatedCredentials);
@@ -402,16 +402,16 @@ class SecretsIntegrationTest {
                 "port", 5432,
                 "name", "myapp",
                 "username", "dbuser",
-                "password", "dbtestvalue"
+                "password", "fake-db-password"
             ),
             "redis", Map.of(
                 "host", "redis.example.com",
                 "port", 6379,
-                "password", "redistest"
+                "password", "fake-redis-password"
             ),
             "external-api", Map.of(
-                "key", "testkey12345",
-                "secret", "testsecret67890",
+                "key", "fake-api-key-12345",
+                "secret", "fake-api-secret-67890",
                 "endpoint", "https://api.example.com"
             )
         );
