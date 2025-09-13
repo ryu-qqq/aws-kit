@@ -174,7 +174,7 @@ class DefaultDynamoDbServiceTest {
         // When & Then
         assertThatThrownBy(() -> dynamoDbService.transactWrite(transaction).join())
                 .hasCauseInstanceOf(UnsupportedOperationException.class)
-                .hasMessageContaining("Transaction operations require direct DynamoDB client access");
+                .hasMessageContaining("Transaction operations require raw DynamoDB client");
     }
 
     @Test

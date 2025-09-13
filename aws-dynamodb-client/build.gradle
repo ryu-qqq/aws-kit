@@ -1,9 +1,15 @@
+// Jacoco 플러그인 적용
+apply plugin: 'jacoco'
+
 dependencies {
     // AWS SDK Commons dependency - need to expose for Region, CredentialsProvider
     api project(':aws-sdk-commons')
     
     // DynamoDB Enhanced Client - internal implementation only
     implementation 'software.amazon.awssdk:dynamodb-enhanced'
+    
+    // HTTP Client for timeout configuration
+    implementation 'software.amazon.awssdk:netty-nio-client'
     
     // Spring Boot - provided by user
     compileOnly 'org.springframework.boot:spring-boot-starter'
@@ -14,4 +20,72 @@ dependencies {
     testImplementation 'org.testcontainers:testcontainers'
     testImplementation 'org.testcontainers:junit-jupiter'
     testImplementation 'org.testcontainers:localstack'
+    
+    // JUnit Platform dependencies for coverage runner
+    testImplementation 'org.junit.platform:junit-platform-launcher'
+    testImplementation 'org.junit.platform:junit-platform-engine'
 }
+
+// Jacoco 설정
+jacoco {
+    toolVersion = "0.8.11"  // Java 21 지원 버전
+}
+
+// 테스트 실행 시 Jacoco 에이전트 적용
+test {
+    useJUnitPlatform()
+    finalizedBy jacocoTestReport
+}
+
+// Jacoco 테스트 리포트 생성
+jacocoTestReport {
+    dependsOn test
+    
+    reports {
+        xml.required = true
+        html.required = true
+        csv.required = true
+    }
+    
+    afterEvaluate {
+        classDirectories.setFrom(files(classDirectories.files.collect {
+            fileTree(dir: it, exclude: [
+                // 예외할 클래스들 (예: 설정 클래스, 예시 클래스 등)
+                '**/example/**',
+                '**/config/**'
+            ])
+        }))
+    }
+}
+
+// Jacoco 커버리지 검증
+jacocoTestCoverageVerification {
+    dependsOn jacocoTestReport
+    
+    violationRules {
+        rule {
+            limit {
+                counter = 'LINE'
+                value = 'COVEREDRATIO'
+                minimum = 0.80  // 80% 이상 라인 커버리지
+            }
+        }
+        rule {
+            limit {
+                counter = 'BRANCH'
+                value = 'COVEREDRATIO'
+                minimum = 0.70  // 70% 이상 분기 커버리지
+            }
+        }
+        rule {
+            limit {
+                counter = 'CLASS'
+                value = 'MISSEDCOUNT'
+                maximum = 5     // 최대 5개 클래스까지 누락 허용
+            }
+        }
+    }
+}
+
+// check 태스크에 커버리지 검증 포함
+check.dependsOn jacocoTestCoverageVerification

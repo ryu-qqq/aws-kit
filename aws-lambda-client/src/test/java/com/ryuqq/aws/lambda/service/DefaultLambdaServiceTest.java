@@ -31,11 +31,10 @@ class DefaultLambdaServiceTest {
 
     @BeforeEach
     void setUp() {
-        properties = new LambdaProperties();
-        properties.setTimeout(Duration.ofMinutes(15));
-        properties.setMaxRetries(3);
-        properties.setMaxConcurrentInvocations(10);
-        
+        properties = new LambdaProperties(
+            Duration.ofMinutes(15), 3,
+            10, "NONE", true
+        );
         lambdaService = new DefaultLambdaService(lambdaClient, properties);
     }
 

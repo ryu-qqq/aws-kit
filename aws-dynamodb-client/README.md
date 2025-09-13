@@ -52,10 +52,10 @@ dependencies {
 aws:
   dynamodb:
     region: ap-northeast-2
-    table-prefix: "dev-"
-    table-suffix: ""
-    timeout: PT30S
-    max-retries: 3
+    table-prefix: "dev-"         # 모든 테이블명 앞에 추가될 접두사
+    table-suffix: "-v1"          # 모든 테이블명 뒤에 추가될 접미사
+    timeout: PT30S                # API 호출 타임아웃
+    max-retries: 3                # 재시도 횟수
 ```
 
 ### 3. 엔티티 정의
@@ -208,42 +208,80 @@ aws:
     region: ap-northeast-2                # AWS 리전
     endpoint: http://localhost:4566       # 커스텀 엔드포인트 (LocalStack용)
     
-    # 테이블 네이밍
+    # 테이블 네이밍 (NEW!)
     table-prefix: "prod-"                 # 모든 테이블 이름의 접두사
     table-suffix: "-v1"                   # 모든 테이블 이름의 접미사
     
-    # 클라이언트 구성
-    timeout: PT30S                        # 요청 타임아웃
+    # 클라이언트 구성 (NEW!)
+    timeout: PT30S                        # API 호출 타임아웃 (HTTP 연결 포함)
     max-retries: 3                        # 최대 재시도 횟수
 ```
 
-### 고급 구성
+### 테이블명 변환 기능
 
-프로덕션 환경의 경우 `application-dynamodb.yml`의 전체 구성을 사용할 수 있습니다:
+이제 모든 DynamoDB 작업에서 자동으로 테이블명 변환이 적용됩니다:
+
+```java
+// 설정: prefix="dev-", suffix="-v1"
+dynamoDbService.save(user, "users");    // 실제 테이블명: "dev-users-v1"
+dynamoDbService.load(User.class, key, "products"); // 실제 테이블명: "dev-products-v1"
+```
+
+**환경별 테이블 분리**:
+```yaml
+# development
+aws.dynamodb.table-prefix: "dev-"
+
+# staging  
+aws.dynamodb.table-prefix: "staging-"
+
+# production
+aws.dynamodb.table-prefix: "prod-"
+```
+
+**버전 관리**:
+```yaml
+# 현재 버전
+aws.dynamodb.table-suffix: "-v2"
+
+# 레거시 테이블과 분리
+aws.dynamodb.table-suffix: "-legacy"
+```
+
+### 타임아웃 및 재시도 설정 (NEW!)
+
+이제 모든 필드가 실제 클라이언트 설정에 적용됩니다:
 
 ```yaml
 aws:
   dynamodb:
-    # 연결 설정
-    connection-config:
-      max-connections: 50
-      connection-timeout: PT10S
-      socket-timeout: PT30S
-      tcp-keep-alive: true
+    # 타임아웃 설정 - 모든 HTTP 연결에 적용
+    timeout: PT45S                        # 연결, 읽기, 쓰기 타임아웃
     
-    # 재시도 구성
-    retry-config:
-      max-retries: 3
-      base-delay: PT0.1S
-      max-backoff-time: PT30S
-      backoff-strategy: "EXPONENTIAL"
-      enable-adaptive-retry: true
-    
-    # 배치 설정
-    batch-config:
-      batch-write-size: 25
-      batch-read-size: 100
-      enable-batching: true
+    # 재시도 설정 - DynamoDB 클라이언트에 적용
+    max-retries: 5                        # 실패시 최대 5번 재시도
+```
+
+**타임아웃 설정 상세**:
+- `connectionTimeout`: 연결 설정 타임아웃
+- `connectionAcquisitionTimeout`: 연결 획득 타임아웃  
+- `readTimeout`: 데이터 읽기 타임아웃
+- `writeTimeout`: 데이터 쓰기 타임아웃
+
+모든 타임아웃이 동일한 값으로 설정되어 일관된 동작을 보장합니다.
+
+### 고급 구성
+
+프로덕션 환경 최적화:
+
+```yaml
+aws:
+  dynamodb:
+    # 기본 설정
+    region: ap-northeast-2
+    table-prefix: "prod-"
+    timeout: PT60S        # 프로덕션용 긴 타임아웃
+    max-retries: 5        # 프로덕션용 많은 재시도
 ```
 
 ### 환경별 프로파일
@@ -328,31 +366,38 @@ aws:
 
 ## Spring Boot 통합
 
-### 자동 구성
+### 자동 구성 (업데이트됨!)
 
 모듈은 `AwsDynamoDbAutoConfiguration`을 통해 자동 구성을 제공합니다:
 
-- **DynamoDbAsyncClient** - 리전 및 엔드포인트로 구성
+- **SdkAsyncHttpClient** - timeout 설정이 적용된 HTTP 클라이언트 (NEW!)
+- **DynamoDbAsyncClient** - 리전, 엔드포인트, timeout, maxRetries가 모두 적용 (업데이트됨!)
 - **DynamoDbEnhancedAsyncClient** - 객체 매핑을 위한 향상된 클라이언트
-- **DynamoDbService** - 주입 준비가 된 서비스 구현
+- **TableNameResolver** - prefix/suffix 변환을 담당하는 유틸리티 (NEW!) 
+- **DynamoDbService** - 테이블명 변환이 적용된 서비스 구현 (업데이트됨!)
 
 ### 커스텀 구성
+
+이제 모든 프로퍼티가 자동으로 적용되지만, 필요시 커스터마이징 가능합니다:
 
 ```java
 @Configuration
 public class CustomDynamoDbConfig {
     
+    // 커스텀 테이블명 변환 로직
     @Bean
     @Primary
-    public DynamoDbAsyncClient customDynamoDbClient(DynamoDbProperties properties) {
-        return DynamoDbAsyncClient.builder()
-            .region(Region.of(properties.getRegion()))
-            .credentialsProvider(DefaultCredentialsProvider.create())
-            .overrideConfiguration(ClientOverrideConfiguration.builder()
-                .retryPolicy(RetryPolicy.builder()
-                    .numRetries(properties.getMaxRetries())
-                    .build())
-                .build())
+    public TableNameResolver customTableNameResolver() {
+        return new TableNameResolver("custom-", "-special");
+    }
+    
+    // 커스텀 HTTP 클라이언트 (고급 성능 튜닝)
+    @Bean
+    @Primary
+    public SdkAsyncHttpClient customHttpClient(DynamoDbProperties properties) {
+        return NettyNioAsyncHttpClient.builder()
+            .connectionTimeout(properties.getTimeout())
+            .maxConcurrency(100)  // 추가 설정
             .build();
     }
 }
@@ -407,6 +452,35 @@ public class UserService {
 - 🧪 **쉬운 테스팅**: 내장된 LocalStack 지원
 - 📦 **작은 풋프린트**: 더 적은 의존성
 - 🔧 **유지보수성**: 더 간단한 코드베이스
+
+### 설정 검증
+
+설정이 올바르게 적용되었는지 확인하는 방법:
+
+```java
+@Component
+public class DynamoDbConfigurationValidator {
+    
+    @Autowired
+    private DynamoDbProperties properties;
+    
+    @Autowired
+    private TableNameResolver tableNameResolver;
+    
+    @EventListener(ApplicationReadyEvent.class)
+    public void validateConfiguration() {
+        log.info("DynamoDB 설정:");
+        log.info("- Region: {}", properties.getRegion());
+        log.info("- Timeout: {}", properties.getTimeout());
+        log.info("- Max Retries: {}", properties.getMaxRetries());
+        log.info("- Table Name Resolver: {}", tableNameResolver);
+        
+        // 테이블명 변환 예시
+        String resolvedName = tableNameResolver.resolve("users");
+        log.info("- 'users' 테이블 → '{}'", resolvedName);
+    }
+}
+```
 
 ## 모범 사례
 
@@ -495,7 +569,18 @@ public CompletableFuture<UserSummary> getUserSummary(String userId) {
    ```yaml
    aws:
      dynamodb:
-       timeout: PT60S  # 타임아웃 증가
+       timeout: PT60S     # 모든 HTTP 연결 타임아웃 증가
+       max-retries: 5     # 재시도 횟수 증가
+   ```
+
+5. **테이블명 변환 문제**
+   ```java
+   // TableNameResolver 상태 확인
+   @Autowired
+   private TableNameResolver resolver;
+   
+   log.info("Resolver: {}", resolver);
+   log.info("'users' resolves to: {}", resolver.resolve("users"));
    ```
 
 4. **LocalStack 연결 문제**
@@ -520,6 +605,17 @@ logging:
 
 ### DynamoDbService 인터페이스
 
+### TableNameResolver API
+
+| 메서드 | 설명 | 매개변수 | 반환값 |
+|--------|-------------|------------|--------|
+| `resolve` | 테이블명 변환 | `tableName` | `String` |
+| `getTablePrefix` | 현재 prefix 조회 | 없음 | `String` |
+| `getTableSuffix` | 현재 suffix 조회 | 없음 | `String` |
+| `hasNoTransformation` | 변환 여부 확인 | 없음 | `boolean` |
+
+### DynamoDbService API
+
 | 메서드 | 설명 | 매개변수 | 반환값 |
 |--------|-------------|------------|---------|
 | `save` | 단일 항목 저장 | `item`, `tableName` | `CompletableFuture<Void>` |
@@ -530,6 +626,7 @@ logging:
 | `batchSave` | 배치 항목 저장 | `items`, `tableName` | `CompletableFuture<Void>` |
 | `batchLoad` | 키로 배치 로드 | `itemClass`, `keys`, `tableName` | `CompletableFuture<List<T>>` |
 | `transactWrite` | 트랜잭션 쓰기 | `transactItems` | `CompletableFuture<Void>` |
+| `getTableNameResolver` | 현재 resolver 조회 | 없음 | `TableNameResolver` |
 
 ### 구성 속성
 

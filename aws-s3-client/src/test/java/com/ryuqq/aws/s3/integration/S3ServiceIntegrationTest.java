@@ -23,6 +23,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 import static org.assertj.core.api.Assertions.*;
@@ -281,7 +282,7 @@ class S3ServiceIntegrationTest {
 
         @Override
         public CompletableFuture<String> uploadFile(String bucket, String key, Path file) {
-            software.amazon.awssdk.transfer.s3.model.UploadFileRequest request = 
+            software.amazon.awssdk.transfer.s3.model.UploadFileRequest request =
                     software.amazon.awssdk.transfer.s3.model.UploadFileRequest.builder()
                             .source(file)
                             .putObjectRequest(software.amazon.awssdk.services.s3.model.PutObjectRequest.builder()
@@ -297,7 +298,7 @@ class S3ServiceIntegrationTest {
 
         @Override
         public CompletableFuture<String> uploadBytes(String bucket, String key, byte[] bytes, String contentType) {
-            software.amazon.awssdk.services.s3.model.PutObjectRequest request = 
+            software.amazon.awssdk.services.s3.model.PutObjectRequest request =
                     software.amazon.awssdk.services.s3.model.PutObjectRequest.builder()
                             .bucket(bucket)
                             .key(key)
@@ -311,7 +312,7 @@ class S3ServiceIntegrationTest {
 
         @Override
         public CompletableFuture<byte[]> downloadFile(String bucket, String key) {
-            software.amazon.awssdk.services.s3.model.GetObjectRequest request = 
+            software.amazon.awssdk.services.s3.model.GetObjectRequest request =
                     software.amazon.awssdk.services.s3.model.GetObjectRequest.builder()
                             .bucket(bucket)
                             .key(key)
@@ -323,7 +324,7 @@ class S3ServiceIntegrationTest {
 
         @Override
         public CompletableFuture<Void> downloadToFile(String bucket, String key, Path targetFile) {
-            software.amazon.awssdk.transfer.s3.model.DownloadFileRequest request = 
+            software.amazon.awssdk.transfer.s3.model.DownloadFileRequest request =
                     software.amazon.awssdk.transfer.s3.model.DownloadFileRequest.builder()
                             .destination(targetFile)
                             .getObjectRequest(software.amazon.awssdk.services.s3.model.GetObjectRequest.builder()
@@ -339,7 +340,7 @@ class S3ServiceIntegrationTest {
 
         @Override
         public CompletableFuture<Void> deleteObject(String bucket, String key) {
-            software.amazon.awssdk.services.s3.model.DeleteObjectRequest request = 
+            software.amazon.awssdk.services.s3.model.DeleteObjectRequest request =
                     software.amazon.awssdk.services.s3.model.DeleteObjectRequest.builder()
                             .bucket(bucket)
                             .key(key)
@@ -350,7 +351,7 @@ class S3ServiceIntegrationTest {
 
         @Override
         public CompletableFuture<List<String>> listObjects(String bucket, String prefix) {
-            software.amazon.awssdk.services.s3.model.ListObjectsV2Request request = 
+            software.amazon.awssdk.services.s3.model.ListObjectsV2Request request =
                     software.amazon.awssdk.services.s3.model.ListObjectsV2Request.builder()
                             .bucket(bucket)
                             .prefix(prefix)
@@ -365,13 +366,13 @@ class S3ServiceIntegrationTest {
         @Override
         public CompletableFuture<String> generatePresignedUrl(String bucket, String key, Duration expiration) {
             return CompletableFuture.supplyAsync(() -> {
-                software.amazon.awssdk.services.s3.model.GetObjectRequest getObjectRequest = 
+                software.amazon.awssdk.services.s3.model.GetObjectRequest getObjectRequest =
                         software.amazon.awssdk.services.s3.model.GetObjectRequest.builder()
                                 .bucket(bucket)
                                 .key(key)
                                 .build();
 
-                software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest presignRequest = 
+                software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest presignRequest =
                         software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest.builder()
                                 .signatureDuration(expiration)
                                 .getObjectRequest(getObjectRequest)
@@ -379,6 +380,57 @@ class S3ServiceIntegrationTest {
 
                 return s3Presigner.presignGetObject(presignRequest).url().toString();
             });
+        }
+
+        // 추가된 메서드들의 기본 구현 (테스트에 필요한 것만)
+        @Override
+        public CompletableFuture<com.ryuqq.aws.s3.types.S3Metadata> headObject(String bucket, String key) {
+            return CompletableFuture.failedFuture(new UnsupportedOperationException("Not implemented in test"));
+        }
+
+        @Override
+        public CompletableFuture<String> copyObject(String sourceBucket, String sourceKey, String destBucket, String destKey) {
+            return CompletableFuture.failedFuture(new UnsupportedOperationException("Not implemented in test"));
+        }
+
+        @Override
+        public CompletableFuture<String> copyObjectWithMetadata(String sourceBucket, String sourceKey, String destBucket, String destKey, Map<String, String> newMetadata, com.ryuqq.aws.s3.types.S3StorageClass storageClass) {
+            return CompletableFuture.failedFuture(new UnsupportedOperationException("Not implemented in test"));
+        }
+
+        @Override
+        public CompletableFuture<List<String>> deleteObjects(String bucket, List<String> keys) {
+            return CompletableFuture.failedFuture(new UnsupportedOperationException("Not implemented in test"));
+        }
+
+        @Override
+        public CompletableFuture<String> uploadFileWithMetadata(String bucket, String key, Path file, Map<String, String> metadata, com.ryuqq.aws.s3.types.S3StorageClass storageClass) {
+            return CompletableFuture.failedFuture(new UnsupportedOperationException("Not implemented in test"));
+        }
+
+        @Override
+        public CompletableFuture<String> uploadFileWithProgress(String bucket, String key, Path file, com.ryuqq.aws.s3.types.S3ProgressListener progressListener) {
+            return CompletableFuture.failedFuture(new UnsupportedOperationException("Not implemented in test"));
+        }
+
+        @Override
+        public CompletableFuture<Void> downloadToFileWithProgress(String bucket, String key, Path targetFile, com.ryuqq.aws.s3.types.S3ProgressListener progressListener) {
+            return CompletableFuture.failedFuture(new UnsupportedOperationException("Not implemented in test"));
+        }
+
+        @Override
+        public CompletableFuture<Void> putObjectTags(String bucket, String key, com.ryuqq.aws.s3.types.S3Tag tags) {
+            return CompletableFuture.failedFuture(new UnsupportedOperationException("Not implemented in test"));
+        }
+
+        @Override
+        public CompletableFuture<com.ryuqq.aws.s3.types.S3Tag> getObjectTags(String bucket, String key) {
+            return CompletableFuture.failedFuture(new UnsupportedOperationException("Not implemented in test"));
+        }
+
+        @Override
+        public CompletableFuture<Void> deleteObjectTags(String bucket, String key) {
+            return CompletableFuture.failedFuture(new UnsupportedOperationException("Not implemented in test"));
         }
 
     }

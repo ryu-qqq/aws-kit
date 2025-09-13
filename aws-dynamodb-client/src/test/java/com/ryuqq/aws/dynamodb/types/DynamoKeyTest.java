@@ -46,7 +46,7 @@ class DynamoKeyTest {
             assertThatThrownBy(() -> 
                 DynamoKey.builder().partitionValue(null, "value")
             ).isInstanceOf(NullPointerException.class)
-             .hasMessageContaining("Partition key attribute name cannot be null");
+             .hasMessageContaining("파티션 키 속성명은 null일 수 없습니다");
         }
 
         @Test
@@ -54,7 +54,7 @@ class DynamoKeyTest {
             assertThatThrownBy(() -> 
                 DynamoKey.builder().partitionValue("key", null)
             ).isInstanceOf(NullPointerException.class)
-             .hasMessageContaining("Partition key value cannot be null");
+             .hasMessageContaining("파티션 키 값은 null일 수 없습니다");
         }
 
         @Test
@@ -64,7 +64,7 @@ class DynamoKeyTest {
                     .partitionValue("pk", "value")
                     .sortValue(null, "sortValue")
             ).isInstanceOf(NullPointerException.class)
-             .hasMessageContaining("Sort key attribute name cannot be null");
+             .hasMessageContaining("정렬 키 속성명은 null일 수 없습니다");
         }
 
         @Test
@@ -74,7 +74,7 @@ class DynamoKeyTest {
                     .partitionValue("pk", "value")
                     .sortValue("sk", null)
             ).isInstanceOf(NullPointerException.class)
-             .hasMessageContaining("Sort key value cannot be null");
+             .hasMessageContaining("정렬 키 값은 null일 수 없습니다");
         }
 
         @Test
@@ -82,7 +82,7 @@ class DynamoKeyTest {
             assertThatThrownBy(() -> 
                 DynamoKey.builder().build()
             ).isInstanceOf(IllegalStateException.class)
-             .hasMessageContaining("At least one key attribute must be specified");
+             .hasMessageContaining("최소 한 개의 키 속성은 반드시 지정되어야 합니다");
         }
 
         @Test

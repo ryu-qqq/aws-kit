@@ -1,0 +1,27 @@
+{
+  "properties": [
+    {
+      "name": "aws.sqs.consumer.executor.type",
+      "type": "com.ryuqq.aws.sqs.consumer.properties.SqsConsumerProperties$ExecutorType",
+      "description": "Executor type to use for SQS message processing.",
+      "defaultValue": "PLATFORM_THREADS"
+    },
+    {
+      "name": "aws.sqs.consumer.executor.prefer-virtual-threads",
+      "type": "java.lang.Boolean",
+      "description": "Whether to prefer virtual threads when available (Java 21+). When true and virtual threads are available, uses virtual threads regardless of the type setting.",
+      "defaultValue": false
+    },
+    {
+      "name": "aws.sqs.consumer.executor.enable-monitoring",
+      "type": "java.lang.Boolean",
+      "description": "Whether to enable executor monitoring and metrics collection.",
+      "defaultValue": true
+    },
+    {
+      "name": "aws.sqs.consumer.executor.custom-provider-bean-name",
+      "type": "java.lang.String",
+      "description": "Bean name of custom ExecutorServiceProvider when using CUSTOM executor type."
+    }
+  ]
+}

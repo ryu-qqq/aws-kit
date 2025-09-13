@@ -27,7 +27,7 @@ class AwsPropertiesTest {
 
     @Test
     void shouldHaveCorrectDefaultValues() {
-        assertThat(properties.getRegion()).isEqualTo("us-west-2");
+        assertThat(properties.getRegion()).isEqualTo("ap-northeast-2");
         assertThat(properties.getAccessKey()).isNull();
         assertThat(properties.getSecretKey()).isNull();
         assertThat(properties.getEndpoint()).isNull();
@@ -125,7 +125,7 @@ class AwsPropertiesTest {
                 .orElse(new AwsProperties());
 
         // Should use all default values
-        assertThat(boundProperties.getRegion()).isEqualTo("us-west-2");
+        assertThat(boundProperties.getRegion()).isEqualTo("ap-northeast-2");
         assertThat(boundProperties.getAccessKey()).isNull();
         assertThat(boundProperties.getSecretKey()).isNull();
         assertThat(boundProperties.getEndpoint()).isNull();
