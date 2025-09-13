@@ -5,8 +5,8 @@ import com.ryuqq.aws.sns.types.SnsMessage;
 import com.ryuqq.aws.sns.types.SnsSubscription;
 import com.ryuqq.aws.sns.types.SnsPublishResult;
 import com.ryuqq.aws.sns.types.SnsTopic;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.services.sns.SnsAsyncClient;
 import software.amazon.awssdk.services.sns.model.*;
 
@@ -17,12 +17,17 @@ import java.util.stream.Collectors;
 /**
  * Async-first SNS service with type abstraction
  */
-@Slf4j
-@RequiredArgsConstructor
 public class SnsService {
-    
+
+    private static final Logger log = LoggerFactory.getLogger(SnsService.class);
+
     private final SnsAsyncClient snsClient;
     private final SnsTypeAdapter typeAdapter;
+
+    public SnsService(SnsAsyncClient snsClient, SnsTypeAdapter typeAdapter) {
+        this.snsClient = snsClient;
+        this.typeAdapter = typeAdapter;
+    }
     
     /**
      * Publish message to topic
@@ -223,12 +228,16 @@ public class SnsService {
     
     // Custom exceptions
     public static class SnsPublishException extends RuntimeException {
+        private static final long serialVersionUID = 1L;
+
         public SnsPublishException(String message, Throwable cause) {
             super(message, cause);
         }
     }
-    
+
     public static class SnsOperationException extends RuntimeException {
+        private static final long serialVersionUID = 1L;
+
         public SnsOperationException(String message, Throwable cause) {
             super(message, cause);
         }

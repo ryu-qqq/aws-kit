@@ -3,7 +3,8 @@ package com.ryuqq.aws.s3.monitoring;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.stereotype.Component;
 
@@ -13,15 +14,16 @@ import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * S3 작업 메트릭 수집기
- * 
+ *
  * 한국어 설명:
  * S3 작업의 성능 메트릭을 수집하고 모니터링합니다.
  * Micrometer를 통해 다양한 모니터링 시스템과 통합 가능합니다.
  */
-@Slf4j
 @Component
 @ConditionalOnClass(MeterRegistry.class)
 public class S3MetricsCollector {
+
+    private static final Logger log = LoggerFactory.getLogger(S3MetricsCollector.class);
     
     private final MeterRegistry meterRegistry;
     private final ConcurrentHashMap<String, Timer> operationTimers = new ConcurrentHashMap<>();
@@ -141,18 +143,25 @@ public class S3MetricsCollector {
      */
     public void recordOperationTime(OperationType operationType, Duration duration, boolean success) {
         String status = success ? "success" : "failure";
-        
+
         Timer timer = Timer.builder("s3.operation.duration")
                 .tag("operation", operationType.getName())
                 .tag("status", status)
                 .register(meterRegistry);
         timer.record(duration);
-        
+
         Counter counter = Counter.builder("s3.operation.count")
                 .tag("operation", operationType.getName())
                 .tag("status", status)
                 .register(meterRegistry);
         counter.increment();
+
+        // operationCounters 맵도 업데이트
+        operationCounters.computeIfAbsent(operationType.getName(), k ->
+            Counter.builder("s3.operation.total")
+                .tag("operation", operationType.getName())
+                .register(meterRegistry)
+        ).increment();
     }
     
     /**

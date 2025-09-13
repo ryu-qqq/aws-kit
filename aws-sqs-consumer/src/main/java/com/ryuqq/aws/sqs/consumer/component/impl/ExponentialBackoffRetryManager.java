@@ -1,7 +1,8 @@
 package com.ryuqq.aws.sqs.consumer.component.impl;
 
 import com.ryuqq.aws.sqs.consumer.component.RetryManager;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.util.function.Supplier;
@@ -10,9 +11,10 @@ import java.util.function.Supplier;
  * Implementation of RetryManager with exponential backoff strategy.
  * Provides retry logic with configurable backoff parameters.
  */
-@Slf4j
 @Component
 public class ExponentialBackoffRetryManager implements RetryManager {
+
+    private static final Logger log = LoggerFactory.getLogger(ExponentialBackoffRetryManager.class);
     
     @Override
     public <T> T executeWithRetry(Supplier<T> operation, RetryConfig config) throws Exception {

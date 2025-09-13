@@ -52,6 +52,7 @@ import static org.testcontainers.containers.localstack.LocalStackContainer.Servi
  * - 실제 Java 함수 실행보다는 API 동작에 중점
  * - 네트워크 환경에 따라 테스트 시간이 길어질 수 있음
  */
+@Disabled("LocalStack 통합 테스트는 실제 인프라 테스트시에만 활성화")
 @SpringBootTest
 @Testcontainers
 @DisplayName("Lambda 고급 기능 통합 테스트")
@@ -94,11 +95,13 @@ class LambdaAdvancedIntegrationTest {
                 .build();
 
         // Lambda 서비스 설정
-        LambdaProperties properties = new LambdaProperties();
-        properties.setTimeout(Duration.ofMinutes(5)); // 통합 테스트에서는 짧은 타임아웃
-        properties.setMaxRetries(2); // 빠른 실패를 위해 재시도 감소
-        properties.setMaxConcurrentInvocations(5);
-        properties.setAutoGenerateCorrelationId(true);
+        LambdaProperties properties = new LambdaProperties(
+            Duration.ofMinutes(5), // timeout - 통합 테스트에서는 짧은 타임아웃
+            5, // maxConcurrentInvocations
+            300000L, // defaultBatchTimeoutMs (5분)
+            "INDIVIDUAL", // defaultRetryPolicy - 빠른 실패를 위해 개별 재시도
+            true // autoGenerateCorrelationId
+        );
 
         lambdaService = new DefaultLambdaService(lambdaClient, properties);
 

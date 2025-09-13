@@ -55,11 +55,13 @@ class LambdaConcurrencyControlTest {
     @BeforeEach
     void setUp() {
         // 낮은 동시성으로 설정하여 테스트 효과 확인
-        properties = new LambdaProperties();
-        properties.setTimeout(Duration.ofMinutes(15));
-        properties.setMaxRetries(3);
-        properties.setMaxConcurrentInvocations(3); // 최대 3개 동시 실행
-        properties.setAutoGenerateCorrelationId(true);
+        properties = new LambdaProperties(
+                Duration.ofMinutes(15),  // timeout
+                3,                      // maxConcurrentInvocations - 최대 3개 동시 실행
+                900_000L,               // defaultBatchTimeoutMs
+                "NONE",                 // defaultRetryPolicy
+                true                    // autoGenerateCorrelationId
+        );
         
         lambdaService = new DefaultLambdaService(lambdaClient, properties);
 
@@ -147,9 +149,9 @@ class LambdaConcurrencyControlTest {
 
             // Then: 최대 동시 실행 수가 설정된 한도를 초과하지 않았는지 확인
             int observedMaxConcurrency = maxConcurrentCallsObserved.get();
-            assertTrue(observedMaxConcurrency <= properties.getMaxConcurrentInvocations(),
+            assertTrue(observedMaxConcurrency <= properties.maxConcurrentInvocations(),
                       String.format("관찰된 최대 동시성(%d)이 설정된 한도(%d)를 초과했습니다", 
-                                   observedMaxConcurrency, properties.getMaxConcurrentInvocations()));
+                                   observedMaxConcurrency, properties.maxConcurrentInvocations()));
 
             // 모든 호출이 성공했는지 확인
             for (CompletableFuture<String> future : futures) {
@@ -172,7 +174,7 @@ class LambdaConcurrencyControlTest {
                 final String expectedResult = "{\"result\":\"" + functionNames.get(i) + "\"}";
                 
                 when(lambdaClient.invoke(argThat((InvokeRequest request) -> 
-                        request.functionName().equals(functionNames.get(index)))))
+                        request != null && request.functionName().equals(functionNames.get(index)))))
                         .thenAnswer(invocation -> CompletableFuture.supplyAsync(() -> {
                             try {
                                 Thread.sleep(delay);
@@ -304,9 +306,9 @@ class LambdaConcurrencyControlTest {
 
             // Then: 동시성 한도가 준수되었는지 확인
             int observedMax = maxObservedConcurrency.get();
-            assertTrue(observedMax <= properties.getMaxConcurrentInvocations(),
+            assertTrue(observedMax <= properties.maxConcurrentInvocations(),
                       String.format("고급 호출에서 관찰된 최대 동시성(%d)이 한도(%d)를 초과", 
-                                   observedMax, properties.getMaxConcurrentInvocations()));
+                                   observedMax, properties.maxConcurrentInvocations()));
 
             // 모든 응답 검증
             for (int i = 0; i < futures.size(); i++) {
@@ -387,7 +389,7 @@ class LambdaConcurrencyControlTest {
 
             // When: 여러 라운드의 호출 수행
             int rounds = 3;
-            int callsPerRound = properties.getMaxConcurrentInvocations();
+            int callsPerRound = properties.maxConcurrentInvocations();
             
             for (int round = 0; round < rounds; round++) {
                 List<CompletableFuture<String>> futures = new ArrayList<>();

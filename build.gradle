@@ -49,6 +49,25 @@ subprojects {
         testImplementation 'org.mockito:mockito-core'
         testImplementation 'org.mockito:mockito-junit-jupiter'
         testImplementation 'org.assertj:assertj-core'
+        
+        // TestContainers for integration tests
+        testImplementation 'org.testcontainers:testcontainers'
+        testImplementation 'org.testcontainers:junit-jupiter'
+        testImplementation 'org.testcontainers:localstack'
+        
+        // Awaitility for async testing
+        testImplementation 'org.awaitility:awaitility'
+        
+        // Lombok for test classes
+        testCompileOnly 'org.projectlombok:lombok'
+        testAnnotationProcessor 'org.projectlombok:lombok'
+        
+        // ArchUnit for architecture testing and Lombok policy enforcement
+        testImplementation 'com.tngtech.archunit:archunit-junit5:1.2.1'
+        
+        // JUnit Platform Suite for test organization
+        testImplementation 'org.junit.platform:junit-platform-suite-api'
+        testRuntimeOnly 'org.junit.platform:junit-platform-suite-engine'
     }
     
     test {
@@ -57,6 +76,11 @@ subprojects {
             events "passed", "skipped", "failed"
             exceptionFormat "full"
         }
+        
+        // ArchUnit-specific configuration
+        systemProperties = [
+            'archunit.default.no_analysis_cache': 'true'
+        ]
     }
     
     tasks.withType(JavaCompile) {

@@ -59,6 +59,9 @@ public final class QueueAttributeUtils {
     /** 최대 지연 전송 시간 (15분 = 900초) */
     public static final int MAX_DELAY_SECONDS = 900;
     
+    /** 최대 재시도 횟수 (1-1000) */
+    public static final int MAX_RECEIVE_COUNT = 1000;
+    
     private QueueAttributeUtils() {
         // 유틸리티 클래스 - 인스턴스 생성 방지
         throw new UnsupportedOperationException("유틸리티 클래스는 인스턴스를 생성할 수 없습니다");
@@ -113,21 +116,20 @@ public final class QueueAttributeUtils {
                 throw new IllegalArgumentException("큐 속성 값은 null일 수 없습니다: " + key);
             }
             
-            try {
-                // 문자열 키를 QueueAttributeName 열거형으로 변환
-                QueueAttributeName attributeName = QueueAttributeName.fromValue(key);
-                
-                // 속성 값 검증
-                validateAttributeValue(attributeName, value);
-                
-                queueAttributes.put(attributeName, value);
-                
-            } catch (IllegalArgumentException e) {
-                // QueueAttributeName.fromValue()에서 발생하는 예외 처리
+            // 문자열 키를 QueueAttributeName 열거형으로 변환
+            QueueAttributeName attributeName = QueueAttributeName.fromValue(key);
+            
+            // AWS SDK는 알 수 없는 속성에 대해 예외를 던지지 않고 UNKNOWN_TO_SDK_VERSION을 반환
+            if (attributeName != null && "UNKNOWN_TO_SDK_VERSION".equals(attributeName.name())) {
                 throw new IllegalArgumentException(
-                    String.format("지원하지 않는 큐 속성입니다: '%s'. 사용 가능한 속성을 확인하세요", key), e
+                    String.format("지원하지 않는 큐 속성입니다: '%s'", key)
                 );
             }
+            
+            // 속성 값 검증 - 이 예외는 그대로 전달
+            validateAttributeValue(attributeName, value);
+            
+            queueAttributes.put(attributeName, value);
         }
         
         return queueAttributes;
@@ -159,15 +161,19 @@ public final class QueueAttributeUtils {
                 })
                 .collect(Collectors.toMap(
                     entry -> {
-                        try {
-                            QueueAttributeName attributeName = QueueAttributeName.fromValue(entry.getKey());
-                            validateAttributeValue(attributeName, entry.getValue());
-                            return attributeName;
-                        } catch (IllegalArgumentException e) {
+                        // 문자열 키를 QueueAttributeName 열거형으로 변환
+                        QueueAttributeName attributeName = QueueAttributeName.fromValue(entry.getKey());
+                        
+                        // AWS SDK는 알 수 없는 속성에 대해 예외를 던지지 않고 UNKNOWN_TO_SDK_VERSION을 반환
+                        if (attributeName != null && "UNKNOWN_TO_SDK_VERSION".equals(attributeName.name())) {
                             throw new IllegalArgumentException(
-                                String.format("지원하지 않는 큐 속성입니다: '%s'", entry.getKey()), e
+                                String.format("지원하지 않는 큐 속성입니다: '%s'", entry.getKey())
                             );
                         }
+                        
+                        // Validation exceptions are passed through
+                        validateAttributeValue(attributeName, entry.getValue());
+                        return attributeName;
                     },
                     Map.Entry::getValue
                 ));
@@ -191,15 +197,7 @@ public final class QueueAttributeUtils {
                         "VisibilityTimeout은 0-43200초 범위여야 합니다");
                     break;
                     
-                case MESSAGE_RETENTION_PERIOD:
-                    validateIntegerRange(value, MIN_MESSAGE_RETENTION_PERIOD, MAX_MESSAGE_RETENTION_PERIOD,
-                        "MessageRetentionPeriod는 60-1209600초 범위여야 합니다");
-                    break;
                     
-                case MAXIMUM_MESSAGE_SIZE:
-                    validateIntegerRange(value, 1, 1000,
-                        "MaximumMEssageSize는 1-1000 범위여야 합니다");
-                    break;
                     
                 case RECEIVE_MESSAGE_WAIT_TIME_SECONDS:
                     validateIntegerRange(value, 0, MAX_WAIT_TIME_SECONDS,
@@ -217,7 +215,7 @@ public final class QueueAttributeUtils {
                     // JSON 형태의 정책 문서는 별도 검증 없이 AWS에서 처리
                     if (value.trim().isEmpty()) {
                         throw new IllegalArgumentException(
-                            attributeName + " 값은 빈 문자열일 수 없습니다"
+                            attributeName.name() + " 값은 빈 문자열일 수 없습니다"
                         );
                     }
                     break;
@@ -226,7 +224,7 @@ public final class QueueAttributeUtils {
                     // 기타 속성은 기본 검증만 수행
                     if (value.trim().isEmpty()) {
                         throw new IllegalArgumentException(
-                            attributeName + " 값은 빈 문자열일 수 없습니다"
+                            attributeName.name() + " 값은 빈 문자열일 수 없습니다"
                         );
                     }
                     break;
@@ -275,7 +273,6 @@ public final class QueueAttributeUtils {
     public static Map<String, String> getDefaultAttributes() {
         Map<String, String> defaults = new HashMap<>();
         defaults.put("VisibilityTimeout", DEFAULT_VISIBILITY_TIMEOUT);
-        defaults.put("MessageRetentionPeriod", DEFAULT_MESSAGE_RETENTION_PERIOD);
         defaults.put("ReceiveMessageWaitTimeSeconds", DEFAULT_WAIT_TIME_SECONDS);
         return defaults;
     }

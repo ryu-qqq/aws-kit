@@ -6,8 +6,10 @@ import software.amazon.awssdk.services.sqs.model.DeleteMessageBatchRequestEntry;
 import software.amazon.awssdk.services.sqs.model.SendMessageBatchRequestEntry;
 
 import java.util.*;
+import java.lang.reflect.InvocationTargetException;
 
 import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.catchThrowable;
 
 /**
  * BatchEntryFactory 테스트
@@ -223,8 +225,15 @@ class BatchEntryFactoryTest {
             var constructor = BatchEntryFactory.class.getDeclaredConstructor();
             constructor.setAccessible(true);
             constructor.newInstance();
-        }).hasCauseInstanceOf(UnsupportedOperationException.class)
-          .hasMessageContaining("팩토리 클래스는 인스턴스를 생성할 수 없습니다");
+        }).isInstanceOf(InvocationTargetException.class)
+          .hasCauseInstanceOf(UnsupportedOperationException.class);
+
+        assertThat(((InvocationTargetException) catchThrowable(() -> {
+            var constructor = BatchEntryFactory.class.getDeclaredConstructor();
+            constructor.setAccessible(true);
+            constructor.newInstance();
+        })).getCause())
+          .hasMessage("팩토리 클래스는 인스턴스를 생성할 수 없습니다");
     }
     
     @Test

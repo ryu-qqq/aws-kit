@@ -54,9 +54,7 @@ public class AwsS3AutoConfiguration {
          */
         return S3TransferManager.builder()
                 .s3Client(s3AsyncClient)
-                .uploadConfiguration(cfg -> cfg
-                        .multipartUploadThreshold(s3Properties.getMultipartThreshold())
-                        .minimumPartSizeInBytes(5 * 1024 * 1024L)) // 5MB 최소 파트 크기
+                .uploadDirectoryMaxDepth(Integer.MAX_VALUE)
                 .build();
     }
     

@@ -1,8 +1,5 @@
 package com.ryuqq.aws.lambda.types;
 
-import lombok.Builder;
-import lombok.Data;
-
 /**
  * Lambda 함수 호출 응답을 위한 타입 추상화 클래스
  * 
@@ -39,9 +36,7 @@ import lombok.Data;
  * }
  * </pre>
  */
-@Data
-@Builder
-public class LambdaInvocationResponse {
+public record LambdaInvocationResponse(
     
     /**
      * Lambda 함수의 실행 결과 페이로드
@@ -55,7 +50,7 @@ public class LambdaInvocationResponse {
      * - 단순 값: "\"Hello World\"", "123", "true"
      * - null 반환: "null"
      */
-    private final String payload;
+    String payload,
     
     /**
      * HTTP 응답 상태 코드
@@ -75,7 +70,7 @@ public class LambdaInvocationResponse {
      * - 502: 함수 실행 오류
      * - 503: 서비스 사용 불가
      */
-    private final int statusCode;
+    int statusCode,
     
     /**
      * 함수 실행 중 발생한 오류 타입
@@ -92,7 +87,7 @@ public class LambdaInvocationResponse {
      * 주의: 이 필드는 함수 레벨 오류에만 설정되며,
      * AWS 시스템 레벨 오류(권한, 네트워크 등)는 statusCode로 구분
      */
-    private final String functionError;
+    String functionError,
     
     /**
      * 함수 실행 로그 (Base64 인코딩)
@@ -114,7 +109,7 @@ public class LambdaInvocationResponse {
      * - 비동기 호출
      * - 함수 실행 전 시스템 오류 발생
      */
-    private final String logResult;
+    String logResult,
     
     /**
      * AWS 요청 ID
@@ -131,7 +126,7 @@ public class LambdaInvocationResponse {
      * - X-Ray에서 분산 추적 연결
      * - 성능 분석 및 디버깅
      */
-    private final String requestId;
+    String requestId,
     
     /**
      * 함수 실행 시간 (밀리초)
@@ -154,7 +149,7 @@ public class LambdaInvocationResponse {
      * - 함수 실행이 실패해도 실행된 시간은 기록됨
      * - 콜드 스타트시 초기화 시간이 포함되어 더 오래 걸림
      */
-    private final Long executionTimeMs;
+    Long executionTimeMs,
     
     /**
      * 요청 추적을 위한 상관관계 ID
@@ -168,7 +163,8 @@ public class LambdaInvocationResponse {
      * - 에러 발생시 원본 요청 추적
      * - 성능 분석시 요청별 메트릭 수집
      */
-    private final String correlationId;
+    String correlationId
+) {
     
     /**
      * 함수 실행이 성공했는지 확인
@@ -217,19 +213,28 @@ public class LambdaInvocationResponse {
         }
     }
     
+    // Getter methods for backward compatibility with traditional JavaBean pattern
+    public String getPayload() { return payload; }
+    public int getStatusCode() { return statusCode; }
+    public String getFunctionError() { return functionError; }
+    public String getLogResult() { return logResult; }
+    public String getRequestId() { return requestId; }
+    public Long getExecutionTimeMs() { return executionTimeMs; }
+    public String getCorrelationId() { return correlationId; }
+    
     /**
      * 에러 메시지 추출
-     * 
+     *
      * 함수 에러가 있는 경우 페이로드에서 에러 메시지를 추출하거나,
      * HTTP 상태 코드 기반으로 일반적인 에러 메시지를 반환합니다.
-     * 
+     *
      * @return 에러 메시지 또는 null (성공시)
      */
     public String getErrorMessage() {
         if (isSuccess()) {
             return null;
         }
-        
+
         if (hasFunctionError()) {
             // 함수 에러인 경우 페이로드에서 에러 메시지 추출 시도
             if (payload != null && payload.contains("errorMessage")) {
@@ -247,18 +252,111 @@ public class LambdaInvocationResponse {
             }
             return "Function execution error: " + functionError;
         }
-        
+
         // HTTP 상태 코드 기반 에러 메시지
-        switch (statusCode) {
-            case 400: return "Bad Request - Invalid payload or parameters";
-            case 403: return "Forbidden - Insufficient permissions";
-            case 404: return "Not Found - Function does not exist";
-            case 413: return "Payload Too Large - Request size exceeds limit";
-            case 429: return "Too Many Requests - Rate limit exceeded";
-            case 500: return "Internal Server Error - AWS service error";
-            case 502: return "Bad Gateway - Function runtime error";
-            case 503: return "Service Unavailable - AWS service temporarily unavailable";
-            default: return "HTTP " + statusCode + " error";
+        return switch (statusCode) {
+            case 400 -> "Bad Request - Invalid payload or parameters";
+            case 403 -> "Forbidden - Insufficient permissions";
+            case 404 -> "Not Found - Function does not exist";
+            case 413 -> "Payload Too Large - Request size exceeds limit";
+            case 429 -> "Too Many Requests - Rate limit exceeded";
+            case 500 -> "Internal Server Error - AWS service error";
+            case 502 -> "Bad Gateway - Function runtime error";
+            case 503 -> "Service Unavailable - AWS service temporarily unavailable";
+            default -> "HTTP " + statusCode + " error";
+        };
+    }
+
+    /**
+     * Builder class for LambdaInvocationResponse
+     */
+    public static final class Builder {
+        private String payload;
+        private int statusCode;
+        private String functionError;
+        private String logResult;
+        private String requestId;
+        private Long executionTimeMs;
+        private String correlationId;
+
+        private Builder() {}
+
+        public Builder payload(String payload) {
+            this.payload = payload;
+            return this;
         }
+
+        public Builder statusCode(int statusCode) {
+            this.statusCode = statusCode;
+            return this;
+        }
+
+        public Builder functionError(String functionError) {
+            this.functionError = functionError;
+            return this;
+        }
+
+        public Builder logResult(String logResult) {
+            this.logResult = logResult;
+            return this;
+        }
+
+        public Builder requestId(String requestId) {
+            this.requestId = requestId;
+            return this;
+        }
+
+        public Builder executionTimeMs(Long executionTimeMs) {
+            this.executionTimeMs = executionTimeMs;
+            return this;
+        }
+
+        public Builder correlationId(String correlationId) {
+            this.correlationId = correlationId;
+            return this;
+        }
+
+        public LambdaInvocationResponse build() {
+            return new LambdaInvocationResponse(payload, statusCode, functionError, logResult,
+                                                requestId, executionTimeMs, correlationId);
+        }
+    }
+
+    /**
+     * Creates a new builder instance
+     * @return new Builder instance
+     */
+    public static Builder builder() {
+        return new Builder();
+    }
+
+    /**
+     * Creates a success response
+     * @param payload the response payload
+     * @param requestId the AWS request ID
+     * @return success LambdaInvocationResponse
+     */
+    public static LambdaInvocationResponse success(String payload, String requestId) {
+        return builder()
+            .payload(payload)
+            .statusCode(200)
+            .requestId(requestId)
+            .build();
+    }
+
+    /**
+     * Creates an error response
+     * @param statusCode the HTTP status code
+     * @param errorMessage the error message
+     * @param requestId the AWS request ID
+     * @return error LambdaInvocationResponse
+     */
+    public static LambdaInvocationResponse error(int statusCode, String errorMessage, String requestId) {
+        return builder()
+            .statusCode(statusCode)
+            .functionError("Error")
+            .payload("{\"errorMessage\":\"" + errorMessage + "\"}")
+            .requestId(requestId)
+            .build();
     }
 }

@@ -15,7 +15,10 @@ class ExecutorServiceProviderTest {
     @Test
     void platformThreadExecutorServiceProvider_shouldCreateExecutors() {
         // Given
-        SqsConsumerProperties properties = new SqsConsumerProperties();
+        SqsConsumerProperties properties = new SqsConsumerProperties(
+            null, null, null, null, null, null, null, null, // defaults for basic props
+            null, null, null, null, null, null, null, null, null, null // defaults for remaining props
+        );
         PlatformThreadExecutorServiceProvider provider = 
             new PlatformThreadExecutorServiceProvider(properties);
         
@@ -127,7 +130,10 @@ class ExecutorServiceProviderTest {
     @Test
     void platformThreadExecutorProvider_shouldHandleShutdownGracefully() throws InterruptedException {
         // Given
-        SqsConsumerProperties properties = new SqsConsumerProperties();
+        SqsConsumerProperties properties = new SqsConsumerProperties(
+            null, null, null, null, null, null, null, null, // defaults for basic props
+            null, null, null, null, null, null, null, null, null, null // defaults for remaining props
+        );
         PlatformThreadExecutorServiceProvider provider = 
             new PlatformThreadExecutorServiceProvider(properties);
         

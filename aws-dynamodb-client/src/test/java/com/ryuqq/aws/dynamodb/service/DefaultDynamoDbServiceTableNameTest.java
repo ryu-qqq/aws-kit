@@ -40,7 +40,7 @@ class DefaultDynamoDbServiceTableNameTest {
     private DefaultDynamoDbService<TestItem> dynamoDbService;
 
     @DynamoDbBean
-    static class TestItem {
+    public static class TestItem {
         private String id;
         private String name;
         

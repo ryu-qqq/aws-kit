@@ -59,10 +59,13 @@ class LambdaServiceIntegrationTest {
                 .region(Region.US_EAST_1)
                 .build();
 
-        LambdaProperties lambdaProperties = new LambdaProperties();
-        lambdaProperties.setTimeout(Duration.ofMinutes(5));
-        lambdaProperties.setMaxConcurrentInvocations(5);
-        lambdaProperties.setMaxRetries(3);
+        LambdaProperties lambdaProperties = new LambdaProperties(
+            Duration.ofMinutes(5), // timeout
+            5, // maxConcurrentInvocations
+            300000L, // defaultBatchTimeoutMs (5분)
+            "NONE", // defaultRetryPolicy
+            true // autoGenerateCorrelationId
+        );
         
         lambdaService = new DefaultLambdaService(lambdaClient, lambdaProperties);
     }

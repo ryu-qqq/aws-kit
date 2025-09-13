@@ -48,7 +48,7 @@ class VirtualThreadPerformanceTest {
         
         // Virtual Thread가 Platform Thread보다 더 적은 시간으로 완료되거나,
         // 더 높은 처리량을 보여야 함
-        assertThat(virtualResult.executionTimeMs()).isLessThanOrEqualTo(platformResult.executionTimeMs() * 1.5);
+        assertThat(virtualResult.executionTimeMs()).isLessThanOrEqualTo((long)(platformResult.executionTimeMs() * 1.5));
         assertThat(virtualResult.throughputPerSecond()).isGreaterThanOrEqualTo(platformResult.throughputPerSecond() * 0.8);
         
         // cleanup

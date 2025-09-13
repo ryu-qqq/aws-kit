@@ -7,7 +7,8 @@ import com.ryuqq.aws.sqs.consumer.component.RetryManager.RetryConfig;
 import com.ryuqq.aws.sqs.consumer.component.DeadLetterQueueHandler.DlqConfig;
 import com.ryuqq.aws.sqs.service.SqsService;
 import com.ryuqq.aws.sqs.types.SqsMessage;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.core.env.Environment;
 
 import java.lang.reflect.Method;
@@ -21,9 +22,10 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * Refactored SQS listener container following SOLID principles.
  * Delegates responsibilities to specialized components for better maintainability and testability.
  */
-@Slf4j
 public class RefactoredSqsListenerContainer {
-    
+
+    private static final Logger log = LoggerFactory.getLogger(RefactoredSqsListenerContainer.class);
+
     private final String containerId;
     private final Object targetBean;
     private final Method targetMethod;

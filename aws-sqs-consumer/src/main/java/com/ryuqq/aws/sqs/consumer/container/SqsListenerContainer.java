@@ -7,7 +7,8 @@ import com.ryuqq.aws.sqs.consumer.types.DlqMessage;
 import com.ryuqq.aws.sqs.service.SqsService;
 import com.ryuqq.aws.sqs.types.SqsMessage;
 import com.ryuqq.aws.sqs.consumer.annotation.SqsListener;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 import org.springframework.core.env.Environment;
 
@@ -63,8 +64,9 @@ import java.util.concurrent.atomic.AtomicReference;
  * @see SqsService
  * @since 1.0.0
  */
-@Slf4j
 public class SqsListenerContainer {
+
+    private static final Logger log = LoggerFactory.getLogger(SqsListenerContainer.class);
     
     private static final ObjectMapper OBJECT_MAPPER = createSecureObjectMapper();
     

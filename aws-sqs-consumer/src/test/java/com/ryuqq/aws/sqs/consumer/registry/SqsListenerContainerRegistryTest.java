@@ -37,15 +37,15 @@ class SqsListenerContainerRegistryTest {
     void setUp() {
         registry = new SqsListenerContainerRegistry();
         
-        // Setup mock behaviors
-        when(container1.isRunning()).thenReturn(false);
-        when(container2.isRunning()).thenReturn(false);
-        when(container1.getStats()).thenReturn(stats1);
-        when(container2.getStats()).thenReturn(stats2);
-        when(stats1.getProcessedMessages()).thenReturn(10L);
-        when(stats1.getFailedMessages()).thenReturn(1L);
-        when(stats2.getProcessedMessages()).thenReturn(20L);
-        when(stats2.getFailedMessages()).thenReturn(2L);
+        // Setup mock behaviors with lenient stubbing
+        lenient().when(container1.isRunning()).thenReturn(false);
+        lenient().when(container2.isRunning()).thenReturn(false);
+        lenient().when(container1.getStats()).thenReturn(stats1);
+        lenient().when(container2.getStats()).thenReturn(stats2);
+        lenient().when(stats1.getProcessedMessages()).thenReturn(10L);
+        lenient().when(stats1.getFailedMessages()).thenReturn(1L);
+        lenient().when(stats2.getProcessedMessages()).thenReturn(20L);
+        lenient().when(stats2.getFailedMessages()).thenReturn(2L);
     }
     
     @Test
@@ -167,8 +167,8 @@ class SqsListenerContainerRegistryTest {
     void start_이미실행중인경우() {
         // Given
         registry.start();
-        reset(container1); // Clear previous invocations
         registry.registerContainer("container1", container1);
+        reset(container1); // Clear previous invocations
         
         // When
         registry.start(); // Start again
@@ -201,12 +201,17 @@ class SqsListenerContainerRegistryTest {
     @Test
     void registryStatsToString() {
         // Given
-        // 실제 registry에서 stats를 가져오는 방식으로 수정 필요
-        // 우선 컴파일 오류만 해결
-        SqsListenerContainerRegistry registry = new SqsListenerContainerRegistry();
-        SqsListenerContainerRegistry.RegistryStats stats = registry.getStats();
+        registry.registerContainer("container1", container1);
+        registry.registerContainer("container2", container2);
+        when(container1.isRunning()).thenReturn(true);
+        when(container2.isRunning()).thenReturn(false);
+        when(stats1.getProcessedMessages()).thenReturn(70L);
+        when(stats1.getFailedMessages()).thenReturn(3L);
+        when(stats2.getProcessedMessages()).thenReturn(30L);
+        when(stats2.getFailedMessages()).thenReturn(2L);
         
         // When
+        SqsListenerContainerRegistry.RegistryStats stats = registry.getStats();
         String statsString = stats.toString();
         
         // Then

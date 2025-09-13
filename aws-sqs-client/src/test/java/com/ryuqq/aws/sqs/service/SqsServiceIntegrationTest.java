@@ -3,6 +3,7 @@ package com.ryuqq.aws.sqs.service;
 import com.ryuqq.aws.sqs.properties.SqsProperties;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -30,6 +31,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * SQS 서비스 LocalStack 통합 테스트
  */
 @Testcontainers
+@EnabledIfSystemProperty(named = "run.integration.tests", matches = "true")
 class SqsServiceIntegrationTest {
 
     @Container

@@ -1,7 +1,5 @@
 package com.ryuqq.aws.lambda.exception;
 
-import lombok.Getter;
-
 /**
  * Lambda 함수 실행 중 발생하는 사용자 정의 예외 클래스
  * 
@@ -27,10 +25,9 @@ import lombok.Getter;
  * }
  * </pre>
  */
-@Getter
 public class LambdaFunctionException extends RuntimeException {
     
-    private static final long serialVersionUID = 1L;
+    private static final long serialVersionUID = 7439512073671089745L;
 
     /**
      * 실패한 Lambda 함수 이름 또는 ARN
@@ -144,5 +141,21 @@ public class LambdaFunctionException extends RuntimeException {
         }
         
         return sb.toString();
+    }
+
+    /**
+     * Gets the function name that failed
+     * @return the function name or null if not set
+     */
+    public String getFunctionName() {
+        return functionName;
+    }
+
+    /**
+     * Gets the correlation ID for request tracking
+     * @return the correlation ID or null if not set
+     */
+    public String getCorrelationId() {
+        return correlationId;
     }
 }

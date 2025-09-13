@@ -1,8 +1,6 @@
 package com.ryuqq.aws.lambda.types;
 
-import lombok.Builder;
-import lombok.Data;
-import lombok.Singular;
+import java.util.ArrayList;
 
 import java.util.List;
 
@@ -63,9 +61,7 @@ import java.util.List;
  * }
  * </pre>
  */
-@Data
-@Builder
-public class LambdaBatchInvocationRequest {
+public record LambdaBatchInvocationRequest(
     
     /**
      * 배치 작업 고유 식별자
@@ -90,7 +86,7 @@ public class LambdaBatchInvocationRequest {
      * log.info("Starting batch processing [batchId={}] with {} requests", 
      *          request.getBatchId(), request.getRequests().size());
      */
-    private final String batchId;
+    String batchId,
     
     /**
      * 개별 Lambda 호출 요청 목록
@@ -111,8 +107,7 @@ public class LambdaBatchInvocationRequest {
      * - 크기별 배치: 페이로드 크기가 비슷한 것끼리 그룹핑
      * - 우선순위별 배치: 중요도가 비슷한 작업끼리 그룹핑
      */
-    @Singular
-    private final List<LambdaInvocationRequest> requests;
+    List<LambdaInvocationRequest> requests,
     
     /**
      * 최대 동시 실행 수
@@ -149,8 +144,7 @@ public class LambdaBatchInvocationRequest {
      * - CPU 집약적 함수: 낮은 동시성 (CPU 경합 방지)
      * - 메모리 집약적 함수: 중간 동시성 (메모리 압박 방지)
      */
-    @Builder.Default
-    private final int maxConcurrency = 10;
+    int maxConcurrency,
     
     /**
      * 빠른 실패 모드 활성화 여부
@@ -192,8 +186,7 @@ public class LambdaBatchInvocationRequest {
      *    - 어떤 요청들이 실패했는지 전체 패턴 파악
      *    - 실패율 분석 및 시스템 개선
      */
-    @Builder.Default
-    private final boolean failFast = false;
+    boolean failFast,
     
     /**
      * 배치 처리 타임아웃 (밀리초)
@@ -231,8 +224,7 @@ public class LambdaBatchInvocationRequest {
      * - 배치 처리: 5-15분
      * - 대용량 처리: 15분 (Lambda 최대값)
      */
-    @Builder.Default
-    private final long timeoutMs = 900_000L; // 15분
+    long timeoutMs,
     
     /**
      * 재시도 정책 설정
@@ -271,8 +263,7 @@ public class LambdaBatchInvocationRequest {
      *    - 단순하고 일관된 재시도 정책
      *    - 배치 처리 진행 상황 추적 중요
      */
-    @Builder.Default
-    private final RetryPolicy retryPolicy = RetryPolicy.NONE;
+    RetryPolicy retryPolicy,
     
     /**
      * 결과 집계 방식
@@ -321,8 +312,8 @@ public class LambdaBatchInvocationRequest {
      *    - 진행 상황 모니터링만 필요
      *    - 메모리 제약이 있는 환경
      */
-    @Builder.Default
-    private final AggregationMode aggregationMode = AggregationMode.ALL;
+    AggregationMode aggregationMode
+) {
     
     /**
      * 재시도 정책 열거형
@@ -411,5 +402,93 @@ public class LambdaBatchInvocationRequest {
     public String getSummary() {
         return String.format("Batch[id=%s, requests=%d, maxConcurrency=%d, failFast=%s, retryPolicy=%s, aggregation=%s]",
                 batchId, requests.size(), maxConcurrency, failFast, retryPolicy, aggregationMode);
+    }
+    
+    /**
+     * Custom builder class that provides default values for LambdaBatchInvocationRequest
+     */
+    public static final class Builder {
+        private String batchId;
+        private List<LambdaInvocationRequest> requests = new java.util.ArrayList<>();
+        private int maxConcurrency = 10;
+        private boolean failFast = false;
+        private long timeoutMs = 900_000L; // 15분
+        private RetryPolicy retryPolicy = RetryPolicy.NONE;
+        private AggregationMode aggregationMode = AggregationMode.ALL;
+        
+        public Builder batchId(String batchId) {
+            this.batchId = batchId;
+            return this;
+        }
+        
+        public Builder requests(List<LambdaInvocationRequest> requests) {
+            this.requests = requests != null ? new java.util.ArrayList<>(requests) : new java.util.ArrayList<>();
+            return this;
+        }
+        
+        public Builder request(LambdaInvocationRequest request) {
+            if (this.requests == null) {
+                this.requests = new java.util.ArrayList<>();
+            }
+            this.requests.add(request);
+            return this;
+        }
+        
+        public Builder clearRequests() {
+            this.requests = new java.util.ArrayList<>();
+            return this;
+        }
+        
+        public Builder maxConcurrency(int maxConcurrency) {
+            this.maxConcurrency = maxConcurrency;
+            return this;
+        }
+        
+        public Builder failFast(boolean failFast) {
+            this.failFast = failFast;
+            return this;
+        }
+        
+        public Builder timeoutMs(long timeoutMs) {
+            this.timeoutMs = timeoutMs;
+            return this;
+        }
+        
+        public Builder retryPolicy(RetryPolicy retryPolicy) {
+            this.retryPolicy = retryPolicy;
+            return this;
+        }
+        
+        public Builder aggregationMode(AggregationMode aggregationMode) {
+            this.aggregationMode = aggregationMode;
+            return this;
+        }
+        
+        public LambdaBatchInvocationRequest build() {
+            return new LambdaBatchInvocationRequest(batchId, 
+                    requests != null ? List.copyOf(requests) : List.of(),
+                    maxConcurrency, failFast, timeoutMs, retryPolicy, aggregationMode);
+        }
+    }
+    
+    /**
+     * Creates a new builder instance
+     * @return new Builder instance
+     */
+    public static Builder builder() {
+        return new Builder();
+    }
+
+    /**
+     * Creates a simple batch request with default settings
+     * @param batchId the batch identifier
+     * @param requests the list of requests
+     * @return LambdaBatchInvocationRequest instance
+     */
+    public static LambdaBatchInvocationRequest of(String batchId, List<LambdaInvocationRequest> requests) {
+        return builder()
+            .batchId(batchId)
+            .requests(requests)
+            .build();
     }
 }

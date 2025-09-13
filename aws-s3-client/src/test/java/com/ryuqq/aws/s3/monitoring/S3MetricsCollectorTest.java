@@ -90,7 +90,7 @@ class S3MetricsCollectorTest {
         
         assertThat(successTimer).isNotNull();
         assertThat(successTimer.count()).isEqualTo(1);
-        assertThat(successTimer.totalTime(Duration.ofMillis(1).toNanos())).isGreaterThan(0);
+        assertThat(successTimer.totalTime(java.util.concurrent.TimeUnit.NANOSECONDS)).isGreaterThan(0);
     }
 
     @Test
@@ -139,7 +139,7 @@ class S3MetricsCollectorTest {
         
         assertThat(timer).isNotNull();
         assertThat(timer.count()).isEqualTo(1);
-        assertThat(timer.totalTime(Duration.ofMillis(1).toNanos())).isGreaterThanOrEqualTo(150);
+        assertThat(timer.totalTime(java.util.concurrent.TimeUnit.MILLISECONDS)).isGreaterThanOrEqualTo(150);
         
         Counter counter = meterRegistry.find("s3.operation.count")
                 .tag("operation", "delete")
@@ -252,7 +252,7 @@ class S3MetricsCollectorTest {
         
         assertThat(latencyTimer).isNotNull();
         assertThat(latencyTimer.count()).isEqualTo(1);
-        assertThat(latencyTimer.totalTime(Duration.ofMillis(1).toNanos())).isGreaterThanOrEqualTo(250);
+        assertThat(latencyTimer.totalTime(java.util.concurrent.TimeUnit.MILLISECONDS)).isGreaterThanOrEqualTo(250);
     }
 
     @Test

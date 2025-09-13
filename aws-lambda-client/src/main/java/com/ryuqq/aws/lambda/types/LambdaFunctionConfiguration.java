@@ -1,8 +1,5 @@
 package com.ryuqq.aws.lambda.types;
 
-import lombok.Builder;
-import lombok.Data;
-
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -33,9 +30,7 @@ import java.util.Map;
  * }
  * </pre>
  */
-@Data
-@Builder
-public class LambdaFunctionConfiguration {
+public record LambdaFunctionConfiguration(
     
     /**
      * 함수 이름
@@ -50,7 +45,7 @@ public class LambdaFunctionConfiguration {
      * 
      * 예시: "user-service", "order_processor", "ImageResizer"
      */
-    private final String functionName;
+    String functionName,
     
     /**
      * 함수 ARN (Amazon Resource Name)
@@ -64,7 +59,7 @@ public class LambdaFunctionConfiguration {
      * 예시:
      * "arn:aws:lambda:us-east-1:123456789012:function:user-service"
      */
-    private final String functionArn;
+    String functionArn,
     
     /**
      * 함수 런타임 환경
@@ -87,7 +82,7 @@ public class LambdaFunctionConfiguration {
      * - 호환성: 기존 코드와의 호환성 확인 필요
      * - 수명: AWS에서 지원 중단 예정인 런타임 피하기
      */
-    private final String runtime;
+    String runtime,
     
     /**
      * 함수 실행 역할 ARN
@@ -108,7 +103,7 @@ public class LambdaFunctionConfiguration {
      * ARN 예시:
      * "arn:aws:iam::123456789012:role/lambda-execution-role"
      */
-    private final String role;
+    String role,
     
     /**
      * 함수 핸들러 메서드
@@ -128,7 +123,7 @@ public class LambdaFunctionConfiguration {
      * - 메서드: handleRequest
      * - 시그니처: public String handleRequest(Map<String,Object> event, Context context)
      */
-    private final String handler;
+    String handler,
     
     /**
      * 코드 크기 (바이트)
@@ -145,7 +140,7 @@ public class LambdaFunctionConfiguration {
      * - 코드 분할 및 레이어 사용
      * - 압축률이 좋은 라이브러리 선택
      */
-    private final Long codeSize;
+    Long codeSize,
     
     /**
      * 함수 설명
@@ -165,7 +160,7 @@ public class LambdaFunctionConfiguration {
      * - "테스트" (목적 불명확)
      * - "" (빈 설명)
      */
-    private final String description;
+    String description,
     
     /**
      * 함수 타임아웃 (초)
@@ -187,7 +182,7 @@ public class LambdaFunctionConfiguration {
      * - 너무 길면 장애시 비용 낭비
      * - API Gateway는 29초 제한
      */
-    private final Integer timeout;
+    Integer timeout,
     
     /**
      * 메모리 크기 (MB)
@@ -212,7 +207,7 @@ public class LambdaFunctionConfiguration {
      * - 머신러닝: 3008-10240MB
      * - 이미지/비디오 처리: 1792-10240MB
      */
-    private final Integer memorySize;
+    Integer memorySize,
     
     /**
      * 마지막 수정 시각
@@ -228,7 +223,7 @@ public class LambdaFunctionConfiguration {
      * 
      * 예시: 2023-12-01T10:30:45.123Z
      */
-    private final Instant lastModified;
+    Instant lastModified,
     
     /**
      * 코드 SHA256 해시
@@ -245,7 +240,7 @@ public class LambdaFunctionConfiguration {
      * 형태: 64자리 16진수 문자열
      * 예시: "a1b2c3d4e5f6789012345678901234567890123456789012345678901234567890"
      */
-    private final String codeSha256;
+    String codeSha256,
     
     /**
      * 함수 버전
@@ -265,7 +260,7 @@ public class LambdaFunctionConfiguration {
      * - $LATEST: 편집 가능, 코드/설정 변경 가능
      * - 숫자 버전: 불변, 코드/설정 변경 불가, 독립적 호출 가능
      */
-    private final String version;
+    String version,
     
     /**
      * VPC 설정 정보
@@ -289,7 +284,7 @@ public class LambdaFunctionConfiguration {
      * - NAT 게이트웨이 필요 (인터넷 접근시)
      * - ENI 관리 권한 필요
      */
-    private final VpcConfig vpcConfig;
+    VpcConfig vpcConfig,
     
     /**
      * 환경 변수
@@ -314,7 +309,7 @@ public class LambdaFunctionConfiguration {
      * - "DB_HOST": "my-db.region.rds.amazonaws.com"
      * - "STAGE": "production"
      */
-    private final Map<String, String> environment;
+    Map<String, String> environment,
     
     /**
      * 데드 레터 큐 설정
@@ -340,7 +335,7 @@ public class LambdaFunctionConfiguration {
      * 예시 ARN:
      * "arn:aws:sqs:us-east-1:123456789012:my-dlq"
      */
-    private final String deadLetterConfig;
+    String deadLetterConfig,
     
     /**
      * KMS 키 ARN
@@ -365,7 +360,7 @@ public class LambdaFunctionConfiguration {
      * 예시 ARN:
      * "arn:aws:kms:us-east-1:123456789012:key/12345678-1234-1234-1234-123456789012"
      */
-    private final String kmsKeyArn;
+    String kmsKeyArn,
     
     /**
      * 추적 설정
@@ -387,7 +382,7 @@ public class LambdaFunctionConfiguration {
      * - 높은 트래픽 시스템에서는 샘플링 필요
      * - 개발/테스트 환경에서는 비활성화 고려
      */
-    private final String tracingConfig;
+    String tracingConfig,
     
     /**
      * 마스터 ARN (예약된 동시성)
@@ -406,7 +401,7 @@ public class LambdaFunctionConfiguration {
      * - 리소스 기반 정책 설정 필요
      * - 감사 로깅 활성화
      */
-    private final String masterArn;
+    String masterArn,
     
     /**
      * 예약된 동시 실행 수
@@ -429,7 +424,7 @@ public class LambdaFunctionConfiguration {
      * - 다른 함수의 가용성에 영향
      * - 비용 최적화 필요
      */
-    private final Integer reservedConcurrencyExecutions;
+    Integer reservedConcurrencyExecutions,
     
     /**
      * 태그 정보
@@ -455,7 +450,7 @@ public class LambdaFunctionConfiguration {
      * - 개수: 최대 50개
      * - 대소문자 구분 안함
      */
-    private final Map<String, String> tags;
+    Map<String, String> tags,
     
     /**
      * 레이어 정보
@@ -478,49 +473,288 @@ public class LambdaFunctionConfiguration {
      * - 사용자 정의 레이어: 회사 공통 라이브러리
      * - 서드파티 레이어: 오픈소스 라이브러리
      */
-    private final List<LayerInfo> layers;
+    List<LayerInfo> layers
+) {
+    
+    // Getter methods for backward compatibility with traditional JavaBean pattern
+    public String getFunctionName() { return functionName; }
+    public String getFunctionArn() { return functionArn; }
+    public String getRuntime() { return runtime; }
+    public String getRole() { return role; }
+    public String getHandler() { return handler; }
+    public Long getCodeSize() { return codeSize; }
+    public String getDescription() { return description; }
+    public Integer getTimeout() { return timeout; }
+    public Integer getMemorySize() { return memorySize; }
+    public Instant getLastModified() { return lastModified; }
+    public String getCodeSha256() { return codeSha256; }
+    public String getVersion() { return version; }
+    public VpcConfig getVpcConfig() { return vpcConfig; }
+    public Map<String, String> getEnvironment() { return environment; }
+    public String getDeadLetterConfig() { return deadLetterConfig; }
+    public String getKmsKeyArn() { return kmsKeyArn; }
+    public String getTracingConfig() { return tracingConfig; }
+    public String getMasterArn() { return masterArn; }
+    public Integer getReservedConcurrencyExecutions() { return reservedConcurrencyExecutions; }
+    public Map<String, String> getTags() { return tags; }
+    public List<LayerInfo> getLayers() { return layers; }
     
     /**
-     * VPC 설정 정보를 나타내는 중첩 클래스
+     * VPC 설정 정보를 나타내는 중첩 레코드
      */
-    @Data
-    @Builder
-    public static class VpcConfig {
+    public record VpcConfig(
         /**
          * VPC ID
          */
-        private final String vpcId;
-        
+        String vpcId,
+
         /**
          * 서브넷 ID 목록
          */
-        private final List<String> subnetIds;
-        
+        List<String> subnetIds,
+
         /**
          * 보안 그룹 ID 목록
          */
-        private final List<String> securityGroupIds;
+        List<String> securityGroupIds
+    ) {
+        /**
+         * Builder for VpcConfig
+         */
+        public static final class Builder {
+            private String vpcId;
+            private List<String> subnetIds;
+            private List<String> securityGroupIds;
+
+            private Builder() {}
+
+            public Builder vpcId(String vpcId) {
+                this.vpcId = vpcId;
+                return this;
+            }
+
+            public Builder subnetIds(List<String> subnetIds) {
+                this.subnetIds = subnetIds != null ? List.copyOf(subnetIds) : null;
+                return this;
+            }
+
+            public Builder securityGroupIds(List<String> securityGroupIds) {
+                this.securityGroupIds = securityGroupIds != null ? List.copyOf(securityGroupIds) : null;
+                return this;
+            }
+
+            public VpcConfig build() {
+                return new VpcConfig(vpcId, subnetIds, securityGroupIds);
+            }
+        }
+
+        public static Builder builder() {
+            return new Builder();
+        }
     }
     
     /**
-     * 레이어 정보를 나타내는 중첩 클래스
+     * 레이어 정보를 나타내는 중첩 레코드
      */
-    @Data
-    @Builder
-    public static class LayerInfo {
+    public record LayerInfo(
         /**
          * 레이어 ARN
          */
-        private final String arn;
-        
+        String arn,
+
         /**
          * 레이어 코드 크기 (바이트)
          */
-        private final Long codeSize;
-        
+        Long codeSize,
+
         /**
          * 레이어 버전
          */
-        private final Long version;
+        Long version
+    ) {
+        /**
+         * Builder for LayerInfo
+         */
+        public static final class Builder {
+            private String arn;
+            private Long codeSize;
+            private Long version;
+
+            private Builder() {}
+
+            public Builder arn(String arn) {
+                this.arn = arn;
+                return this;
+            }
+
+            public Builder codeSize(Long codeSize) {
+                this.codeSize = codeSize;
+                return this;
+            }
+
+            public Builder version(Long version) {
+                this.version = version;
+                return this;
+            }
+
+            public LayerInfo build() {
+                return new LayerInfo(arn, codeSize, version);
+            }
+        }
+
+        public static Builder builder() {
+            return new Builder();
+        }
+    }
+
+    /**
+     * Builder class for LambdaFunctionConfiguration
+     */
+    public static final class Builder {
+        private String functionName;
+        private String functionArn;
+        private String runtime;
+        private String role;
+        private String handler;
+        private Long codeSize;
+        private String description;
+        private Integer timeout;
+        private Integer memorySize;
+        private Instant lastModified;
+        private String codeSha256;
+        private String version;
+        private VpcConfig vpcConfig;
+        private Map<String, String> environment;
+        private String deadLetterConfig;
+        private String kmsKeyArn;
+        private String tracingConfig;
+        private String masterArn;
+        private Integer reservedConcurrencyExecutions;
+        private Map<String, String> tags;
+        private List<LayerInfo> layers;
+
+        private Builder() {}
+
+        public Builder functionName(String functionName) {
+            this.functionName = functionName;
+            return this;
+        }
+
+        public Builder functionArn(String functionArn) {
+            this.functionArn = functionArn;
+            return this;
+        }
+
+        public Builder runtime(String runtime) {
+            this.runtime = runtime;
+            return this;
+        }
+
+        public Builder role(String role) {
+            this.role = role;
+            return this;
+        }
+
+        public Builder handler(String handler) {
+            this.handler = handler;
+            return this;
+        }
+
+        public Builder codeSize(Long codeSize) {
+            this.codeSize = codeSize;
+            return this;
+        }
+
+        public Builder description(String description) {
+            this.description = description;
+            return this;
+        }
+
+        public Builder timeout(Integer timeout) {
+            this.timeout = timeout;
+            return this;
+        }
+
+        public Builder memorySize(Integer memorySize) {
+            this.memorySize = memorySize;
+            return this;
+        }
+
+        public Builder lastModified(Instant lastModified) {
+            this.lastModified = lastModified;
+            return this;
+        }
+
+        public Builder codeSha256(String codeSha256) {
+            this.codeSha256 = codeSha256;
+            return this;
+        }
+
+        public Builder version(String version) {
+            this.version = version;
+            return this;
+        }
+
+        public Builder vpcConfig(VpcConfig vpcConfig) {
+            this.vpcConfig = vpcConfig;
+            return this;
+        }
+
+        public Builder environment(Map<String, String> environment) {
+            this.environment = environment != null ? Map.copyOf(environment) : null;
+            return this;
+        }
+
+        public Builder deadLetterConfig(String deadLetterConfig) {
+            this.deadLetterConfig = deadLetterConfig;
+            return this;
+        }
+
+        public Builder kmsKeyArn(String kmsKeyArn) {
+            this.kmsKeyArn = kmsKeyArn;
+            return this;
+        }
+
+        public Builder tracingConfig(String tracingConfig) {
+            this.tracingConfig = tracingConfig;
+            return this;
+        }
+
+        public Builder masterArn(String masterArn) {
+            this.masterArn = masterArn;
+            return this;
+        }
+
+        public Builder reservedConcurrencyExecutions(Integer reservedConcurrencyExecutions) {
+            this.reservedConcurrencyExecutions = reservedConcurrencyExecutions;
+            return this;
+        }
+
+        public Builder tags(Map<String, String> tags) {
+            this.tags = tags != null ? Map.copyOf(tags) : null;
+            return this;
+        }
+
+        public Builder layers(List<LayerInfo> layers) {
+            this.layers = layers != null ? List.copyOf(layers) : null;
+            return this;
+        }
+
+        public LambdaFunctionConfiguration build() {
+            return new LambdaFunctionConfiguration(
+                functionName, functionArn, runtime, role, handler, codeSize, description,
+                timeout, memorySize, lastModified, codeSha256, version, vpcConfig,
+                environment, deadLetterConfig, kmsKeyArn, tracingConfig, masterArn,
+                reservedConcurrencyExecutions, tags, layers
+            );
+        }
+    }
+
+    /**
+     * Creates a new builder instance
+     * @return new Builder instance
+     */
+    public static Builder builder() {
+        return new Builder();
     }
 }

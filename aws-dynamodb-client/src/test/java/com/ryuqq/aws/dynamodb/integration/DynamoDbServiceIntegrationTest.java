@@ -5,6 +5,8 @@ import com.ryuqq.aws.dynamodb.service.DynamoDbService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
+import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
 import org.testcontainers.containers.localstack.LocalStackContainer;
 import org.testcontainers.containers.localstack.LocalStackContainer.Service;
 import org.testcontainers.junit.jupiter.Container;
@@ -31,8 +33,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * DynamoDB service integration tests using LocalStack
+ *
+ * These tests require Docker to be available and running.
+ * Set INTEGRATION_TESTS=enabled to run these tests.
  */
 @Testcontainers
+@EnabledIfEnvironmentVariable(named = "INTEGRATION_TESTS", matches = "enabled")
 class DynamoDbServiceIntegrationTest {
 
     @Container

@@ -1,0 +1,130 @@
+<?xml version="1.0"?>
+<!DOCTYPE module PUBLIC
+    "-//Checkstyle//DTD Checkstyle Configuration 1.3//EN"
+    "https://checkstyle.org/dtds/configuration_1_3.dtd">
+
+<!--
+  Lombok Policy Enforcement Checkstyle Rules
+  
+  This configuration fragment can be included in your main checkstyle.xml
+  to enforce Lombok usage policies at build time.
+  
+  Policy Summary:
+  - Forbid @Data usage entirely
+  - Restrict @Builder to types/DTO packages  
+  - Forbid @Setter on configuration/properties classes
+  - Allow @Slf4j everywhere for logging
+  - Warn about inappropriate @EqualsAndHashCode usage
+-->
+<module name="Checker">
+    
+    <!-- File-level checks -->
+    <module name="TreeWalker">
+        
+        <!-- Forbid @Data annotation entirely -->
+        <module name="SuppressionXpathSingleFilter">
+            <property name="files" value=".*\.java$"/>
+            <property name="message" value="@Data annotation is forbidden"/>
+            <property name="query" value="//ANNOTATION[./DOT/IDENT[@text='Data'] or ./IDENT[@text='Data']]"/>
+        </module>
+        
+        <!-- Custom check for forbidden annotations -->
+        <module name="RegexpSinglelineJava">
+            <property name="format" value="@Data\s*(\(.*\))?\s*$"/>
+            <property name="message" value="@Data annotation is forbidden. Use specific annotations like @Getter, @RequiredArgsConstructor instead."/>
+            <property name="ignoreComments" value="true"/>
+        </module>
+        
+        <!-- Forbid @Setter on configuration classes -->
+        <module name="RegexpSinglelineJava">
+            <property name="format" value="@Setter"/>
+            <property name="message" value="@Setter should be avoided on configuration classes. Use constructor binding instead."/>
+            <property name="ignoreComments" value="true"/>
+            <property name="fileNamePattern" value=".*(?:Config|Configuration|Properties)\.java$"/>
+        </module>
+        
+        <!-- Warn about @Builder usage outside of types/DTO packages -->
+        <module name="RegexpSinglelineJava">
+            <property name="format" value="@Builder"/>
+            <property name="message" value="@Builder should primarily be used on DTOs and type classes in 'types', 'dto', 'request', or 'response' packages."/>
+            <property name="ignoreComments" value="true"/>
+            <property name="fileNamePattern" value="^(?!.*(?:types|dto|request|response)/).*\.java$"/>
+        </module>
+        
+        <!-- Warn about @EqualsAndHashCode on entity classes -->
+        <module name="RegexpSinglelineJava">
+            <property name="format" value="@EqualsAndHashCode"/>
+            <property name="message" value="@EqualsAndHashCode should be carefully implemented on entity classes. Consider JPA proxy objects and database identity."/>
+            <property name="ignoreComments" value="true"/>
+            <property name="fileNamePattern" value=".*(?:Entity|entity/).*\.java$"/>
+        </module>
+        
+        <!-- Forbid @Setter on service classes -->
+        <module name="RegexpSinglelineJava">
+            <property name="format" value="@Setter"/>
+            <property name="message" value="@Setter should not be used on service classes. Services should be immutable after construction."/>
+            <property name="ignoreComments" value="true"/>
+            <property name="fileNamePattern" value=".*(?:Service|service/).*\.java$"/>
+        </module>
+        
+        <!-- Check for proper @RequiredArgsConstructor usage -->
+        <module name="RegexpMultiline">
+            <property name="format" value="@RequiredArgsConstructor.*\n.*class.*Service"/>
+            <property name="message" value="Service classes using @RequiredArgsConstructor should have only final fields for thread safety."/>
+            <property name="fileExtensions" value="java"/>
+        </module>
+        
+    </module>
+    
+    <!-- Global file-level checks -->
+    
+    <!-- Check for @Data in any Java file -->
+    <module name="RegexpSingleline">
+        <property name="format" value="@Data(\s|\(|$)"/>
+        <property name="message" value="@Data annotation is forbidden across the entire project. Use specific Lombok annotations instead."/>
+        <property name="fileExtensions" value="java"/>
+    </module>
+    
+    <!-- Check for multiple Lombok annotations that might indicate @Data replacement needed -->
+    <module name="RegexpMultiline">
+        <property name="format" value="@Getter.*\n.*@Setter.*\n.*@ToString.*\n.*@EqualsAndHashCode"/>
+        <property name="message" value="Consider if this combination of annotations indicates a design issue. Prefer immutable objects with @Builder."/>
+        <property name="fileExtensions" value="java"/>
+    </module>
+    
+</module>
+
+<!--
+  Usage Instructions:
+  
+  1. Include this file in your main checkstyle configuration:
+     <module name="Checker">
+         <!-- Other checks -->
+         <property name="charset" value="UTF-8"/>
+         <module name="SuppressionFilter">
+             <property name="file" value="checkstyle-lombok.xml"/>
+         </module>
+     </module>
+     
+  2. Or merge these rules into your existing checkstyle.xml
+  
+  3. Configure Gradle to use checkstyle:
+     apply plugin: 'checkstyle'
+     
+     checkstyle {
+         toolVersion = '10.12.4'
+         configFile = file('config/checkstyle/checkstyle.xml')
+     }
+     
+     tasks.withType(Checkstyle) {
+         reports {
+             xml.enabled false
+             html.enabled true
+         }
+     }
+  
+  Severity Levels:
+  - Error: @Data usage (build fails)
+  - Warning: Inappropriate @Builder, @Setter usage
+  - Info: Best practice recommendations
+-->

@@ -298,8 +298,8 @@ class SnsTypeAdapterTest {
         SnsPublishResult result = typeAdapter.toPublishResult(response);
 
         // Then
-        assertThat(result.getMessageId()).isEqualTo(TEST_MESSAGE_ID);
-        assertThat(result.getSequenceNumber()).isEqualTo(TEST_SEQUENCE_NUMBER);
+        assertThat(result.messageId()).isEqualTo(TEST_MESSAGE_ID);
+        assertThat(result.sequenceNumber()).isEqualTo(TEST_SEQUENCE_NUMBER);
     }
 
     @Test
@@ -314,8 +314,8 @@ class SnsTypeAdapterTest {
         SnsPublishResult result = typeAdapter.toPublishResult(response);
 
         // Then
-        assertThat(result.getMessageId()).isEqualTo(TEST_MESSAGE_ID);
-        assertThat(result.getSequenceNumber()).isNull();
+        assertThat(result.messageId()).isEqualTo(TEST_MESSAGE_ID);
+        assertThat(result.sequenceNumber()).isNull();
     }
 
     @Test
@@ -331,8 +331,8 @@ class SnsTypeAdapterTest {
         SnsPublishResult result = typeAdapter.toBatchPublishResult(entry);
 
         // Then
-        assertThat(result.getMessageId()).isEqualTo("batch-msg-123");
-        assertThat(result.getSequenceNumber()).isEqualTo("batch-seq-456");
+        assertThat(result.messageId()).isEqualTo("batch-msg-123");
+        assertThat(result.sequenceNumber()).isEqualTo("batch-seq-456");
     }
 
     @Test
@@ -347,8 +347,8 @@ class SnsTypeAdapterTest {
         SnsPublishResult result = typeAdapter.toBatchPublishResult(entry);
 
         // Then
-        assertThat(result.getMessageId()).isEqualTo("batch-msg-123");
-        assertThat(result.getSequenceNumber()).isNull();
+        assertThat(result.messageId()).isEqualTo("batch-msg-123");
+        assertThat(result.sequenceNumber()).isNull();
     }
 
     @Test
@@ -363,7 +363,7 @@ class SnsTypeAdapterTest {
         SnsTopic result = typeAdapter.toSnsTopic(topic);
 
         // Then
-        assertThat(result.getTopicArn()).isEqualTo(TEST_TOPIC_ARN);
+        assertThat(result.topicArn()).isEqualTo(TEST_TOPIC_ARN);
     }
 
     @Test
@@ -378,7 +378,7 @@ class SnsTypeAdapterTest {
         SnsTopic result = typeAdapter.toSnsTopic(response);
 
         // Then
-        assertThat(result.getTopicArn()).isEqualTo(TEST_TOPIC_ARN);
+        assertThat(result.topicArn()).isEqualTo(TEST_TOPIC_ARN);
     }
 
     @Test
@@ -402,11 +402,11 @@ class SnsTypeAdapterTest {
         SnsSubscription result = typeAdapter.toSnsSubscription(subscription);
 
         // Then
-        assertThat(result.getSubscriptionArn()).isEqualTo(subscriptionArn);
-        assertThat(result.getTopicArn()).isEqualTo(TEST_TOPIC_ARN);
-        assertThat(result.getProtocol()).isEqualTo(protocol);
-        assertThat(result.getEndpoint()).isEqualTo(endpoint);
-        assertThat(result.getOwner()).isEqualTo(owner);
+        assertThat(result.subscriptionArn()).isEqualTo(subscriptionArn);
+        assertThat(result.topicArn()).isEqualTo(TEST_TOPIC_ARN);
+        assertThat(result.protocol()).isEqualTo(protocol);
+        assertThat(result.endpoint()).isEqualTo(endpoint);
+        assertThat(result.owner()).isEqualTo(owner);
     }
 
     @Test
@@ -422,11 +422,11 @@ class SnsTypeAdapterTest {
         SnsSubscription result = typeAdapter.toSnsSubscription(response);
 
         // Then
-        assertThat(result.getSubscriptionArn()).isEqualTo(subscriptionArn);
-        assertThat(result.getTopicArn()).isNull();
-        assertThat(result.getProtocol()).isNull();
-        assertThat(result.getEndpoint()).isNull();
-        assertThat(result.getOwner()).isNull();
+        assertThat(result.subscriptionArn()).isEqualTo(subscriptionArn);
+        assertThat(result.topicArn()).isNull();
+        assertThat(result.protocol()).isNull();
+        assertThat(result.endpoint()).isNull();
+        assertThat(result.owner()).isNull();
     }
 
     @Test

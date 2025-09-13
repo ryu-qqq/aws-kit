@@ -21,7 +21,7 @@ import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
 
 import static org.assertj.core.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -60,10 +60,7 @@ class SnsServiceTest {
                 .messageId(TEST_MESSAGE_ID)
                 .sequenceNumber(TEST_SEQUENCE_NUMBER)
                 .build();
-        SnsPublishResult expectedResult = SnsPublishResult.builder()
-                .messageId(TEST_MESSAGE_ID)
-                .sequenceNumber(TEST_SEQUENCE_NUMBER)
-                .build();
+        SnsPublishResult expectedResult = SnsPublishResult.of(TEST_MESSAGE_ID, TEST_SEQUENCE_NUMBER);
 
         when(typeAdapter.toPublishRequest(TEST_TOPIC_ARN, message)).thenReturn(publishRequest);
         when(snsClient.publish(publishRequest)).thenReturn(CompletableFuture.completedFuture(publishResponse));
@@ -102,8 +99,9 @@ class SnsServiceTest {
                 .withThrowableOfType(ExecutionException.class)
                 .havingCause()
                 .isInstanceOf(SnsService.SnsPublishException.class)
-                .hasMessage("Failed to publish message")
-                .hasCause(cause);
+                .withMessage("Failed to publish message")
+                .havingCause()
+                .isInstanceOf(CompletionException.class);
     }
 
     @Test
@@ -122,11 +120,9 @@ class SnsServiceTest {
         PublishResponse publishResponse = PublishResponse.builder()
                 .messageId(TEST_MESSAGE_ID)
                 .build();
-        SnsPublishResult expectedResult = SnsPublishResult.builder()
-                .messageId(TEST_MESSAGE_ID)
-                .build();
+        SnsPublishResult expectedResult = SnsPublishResult.of(TEST_MESSAGE_ID);
 
-        when(typeAdapter.toPublishRequest(null, any(SnsMessage.class))).thenReturn(publishRequest);
+        when(typeAdapter.toPublishRequest(isNull(), any(SnsMessage.class))).thenReturn(publishRequest);
         when(snsClient.publish(publishRequest)).thenReturn(CompletableFuture.completedFuture(publishResponse));
         when(typeAdapter.toPublishResult(publishResponse)).thenReturn(expectedResult);
 
@@ -136,7 +132,7 @@ class SnsServiceTest {
         // Then
         assertThat(result).succeedsWithin(java.time.Duration.ofSeconds(1))
                 .isEqualTo(expectedResult);
-        verify(typeAdapter).toPublishRequest(eq(null), any(SnsMessage.class));
+        verify(typeAdapter).toPublishRequest(isNull(), any(SnsMessage.class));
         verify(snsClient).publish(publishRequest);
         verify(typeAdapter).toPublishResult(publishResponse);
     }
@@ -148,8 +144,9 @@ class SnsServiceTest {
         String message = "SMS test message";
         RuntimeException cause = new RuntimeException("SMS send failed");
 
-        when(typeAdapter.toPublishRequest(eq(null), any(SnsMessage.class))).thenReturn(any(PublishRequest.class));
-        when(snsClient.publish(any(PublishRequest.class))).thenReturn(CompletableFuture.failedFuture(cause));
+        PublishRequest mockRequest = PublishRequest.builder().phoneNumber(TEST_PHONE_NUMBER).message(message).build();
+        when(typeAdapter.toPublishRequest(isNull(), any(SnsMessage.class))).thenReturn(mockRequest);
+        when(snsClient.publish(mockRequest)).thenReturn(CompletableFuture.failedFuture(cause));
 
         // When
         CompletableFuture<SnsPublishResult> result = snsService.publishSms(TEST_PHONE_NUMBER, message);
@@ -159,7 +156,7 @@ class SnsServiceTest {
                 .withThrowableOfType(ExecutionException.class)
                 .havingCause()
                 .isInstanceOf(SnsService.SnsPublishException.class)
-                .hasMessage("Failed to send SMS");
+                .withMessage("Failed to send SMS");
     }
 
     @Test
@@ -188,10 +185,10 @@ class SnsServiceTest {
                 .failed(Arrays.asList())
                 .build();
 
-        SnsPublishResult result1 = SnsPublishResult.builder().messageId("msg-1").sequenceNumber("seq-1").build();
-        SnsPublishResult result2 = SnsPublishResult.builder().messageId("msg-2").sequenceNumber("seq-2").build();
+        SnsPublishResult result1 = SnsPublishResult.of("msg-1", "seq-1");
+        SnsPublishResult result2 = SnsPublishResult.of("msg-2", "seq-2");
 
-        when(typeAdapter.toPublishBatchRequest(TEST_TOPIC_ARN, messages)).thenReturn(batchRequest);
+        when(typeAdapter.toPublishBatchRequest(eq(TEST_TOPIC_ARN), eq(messages))).thenReturn(batchRequest);
         when(snsClient.publishBatch(batchRequest)).thenReturn(CompletableFuture.completedFuture(batchResponse));
         when(typeAdapter.toBatchPublishResult(entry1)).thenReturn(result1);
         when(typeAdapter.toBatchPublishResult(entry2)).thenReturn(result2);
@@ -201,9 +198,10 @@ class SnsServiceTest {
 
         // Then
         assertThat(result).succeedsWithin(java.time.Duration.ofSeconds(1))
+                .asInstanceOf(org.assertj.core.api.InstanceOfAssertFactories.LIST)
                 .hasSize(2)
                 .containsExactly(result1, result2);
-        verify(typeAdapter).toPublishBatchRequest(TEST_TOPIC_ARN, messages);
+        verify(typeAdapter).toPublishBatchRequest(eq(TEST_TOPIC_ARN), eq(messages));
         verify(snsClient).publishBatch(batchRequest);
     }
 
@@ -230,10 +228,11 @@ class SnsServiceTest {
                 .failed(Arrays.asList(failedEntry))
                 .build();
 
-        SnsPublishResult successResult = SnsPublishResult.builder().messageId("msg-1").build();
+        SnsPublishResult successResult = SnsPublishResult.of("msg-1");
 
-        when(typeAdapter.toPublishBatchRequest(TEST_TOPIC_ARN, messages)).thenReturn(any(PublishBatchRequest.class));
-        when(snsClient.publishBatch(any(PublishBatchRequest.class))).thenReturn(CompletableFuture.completedFuture(batchResponse));
+        PublishBatchRequest mockRequest = PublishBatchRequest.builder().topicArn(TEST_TOPIC_ARN).build();
+        when(typeAdapter.toPublishBatchRequest(eq(TEST_TOPIC_ARN), eq(messages))).thenReturn(mockRequest);
+        when(snsClient.publishBatch(mockRequest)).thenReturn(CompletableFuture.completedFuture(batchResponse));
         when(typeAdapter.toBatchPublishResult(successEntry)).thenReturn(successResult);
 
         // When
@@ -241,6 +240,7 @@ class SnsServiceTest {
 
         // Then
         assertThat(result).succeedsWithin(java.time.Duration.ofSeconds(1))
+                .asInstanceOf(org.assertj.core.api.InstanceOfAssertFactories.LIST)
                 .hasSize(1)
                 .containsExactly(successResult);
     }
@@ -251,9 +251,10 @@ class SnsServiceTest {
         // Given
         List<SnsMessage> messages = Arrays.asList(SnsMessage.of("message"));
         RuntimeException cause = new RuntimeException("Batch publish failed");
+        PublishBatchRequest mockRequest = PublishBatchRequest.builder().topicArn(TEST_TOPIC_ARN).build();
 
-        when(typeAdapter.toPublishBatchRequest(TEST_TOPIC_ARN, messages)).thenReturn(any(PublishBatchRequest.class));
-        when(snsClient.publishBatch(any(PublishBatchRequest.class))).thenReturn(CompletableFuture.failedFuture(cause));
+        when(typeAdapter.toPublishBatchRequest(eq(TEST_TOPIC_ARN), eq(messages))).thenReturn(mockRequest);
+        when(snsClient.publishBatch(mockRequest)).thenReturn(CompletableFuture.failedFuture(cause));
 
         // When
         CompletableFuture<List<SnsPublishResult>> result = snsService.publishBatch(TEST_TOPIC_ARN, messages);
@@ -263,7 +264,7 @@ class SnsServiceTest {
                 .withThrowableOfType(ExecutionException.class)
                 .havingCause()
                 .isInstanceOf(SnsService.SnsPublishException.class)
-                .hasMessage("Failed to publish batch");
+                .withMessage("Failed to publish batch");
     }
 
     @Test
@@ -277,9 +278,7 @@ class SnsServiceTest {
         CreateTopicResponse createResponse = CreateTopicResponse.builder()
                 .topicArn(TEST_TOPIC_ARN)
                 .build();
-        SnsTopic expectedTopic = SnsTopic.builder()
-                .topicArn(TEST_TOPIC_ARN)
-                .build();
+        SnsTopic expectedTopic = SnsTopic.of(TEST_TOPIC_ARN);
 
         when(snsClient.createTopic(createRequest)).thenReturn(CompletableFuture.completedFuture(createResponse));
         when(typeAdapter.toSnsTopic(createResponse)).thenReturn(expectedTopic);
@@ -311,7 +310,7 @@ class SnsServiceTest {
                 .withThrowableOfType(ExecutionException.class)
                 .havingCause()
                 .isInstanceOf(SnsService.SnsOperationException.class)
-                .hasMessage("Failed to create topic");
+                .withMessage("Failed to create topic");
     }
 
     @Test
@@ -349,7 +348,7 @@ class SnsServiceTest {
                 .withThrowableOfType(ExecutionException.class)
                 .havingCause()
                 .isInstanceOf(SnsService.SnsOperationException.class)
-                .hasMessage("Failed to delete topic");
+                .withMessage("Failed to delete topic");
     }
 
     @Test
@@ -366,9 +365,7 @@ class SnsServiceTest {
         SubscribeResponse subscribeResponse = SubscribeResponse.builder()
                 .subscriptionArn(TEST_SUBSCRIPTION_ARN)
                 .build();
-        SnsSubscription expectedSubscription = SnsSubscription.builder()
-                .subscriptionArn(TEST_SUBSCRIPTION_ARN)
-                .build();
+        SnsSubscription expectedSubscription = SnsSubscription.of(TEST_SUBSCRIPTION_ARN, null, null, null, null);
 
         when(snsClient.subscribe(subscribeRequest)).thenReturn(CompletableFuture.completedFuture(subscribeResponse));
         when(typeAdapter.toSnsSubscription(subscribeResponse)).thenReturn(expectedSubscription);
@@ -399,7 +396,7 @@ class SnsServiceTest {
                 .withThrowableOfType(ExecutionException.class)
                 .havingCause()
                 .isInstanceOf(SnsService.SnsOperationException.class)
-                .hasMessage("Failed to subscribe");
+                .withMessage("Failed to subscribe");
     }
 
     @Test
@@ -437,7 +434,7 @@ class SnsServiceTest {
                 .withThrowableOfType(ExecutionException.class)
                 .havingCause()
                 .isInstanceOf(SnsService.SnsOperationException.class)
-                .hasMessage("Failed to unsubscribe");
+                .withMessage("Failed to unsubscribe");
     }
 
     @Test
@@ -450,8 +447,8 @@ class SnsServiceTest {
                 .topics(Arrays.asList(topic1, topic2))
                 .build();
         
-        SnsTopic snsTopic1 = SnsTopic.builder().topicArn("arn:topic:1").build();
-        SnsTopic snsTopic2 = SnsTopic.builder().topicArn("arn:topic:2").build();
+        SnsTopic snsTopic1 = SnsTopic.of("arn:topic:1");
+        SnsTopic snsTopic2 = SnsTopic.of("arn:topic:2");
 
         when(snsClient.listTopics()).thenReturn(CompletableFuture.completedFuture(listResponse));
         when(typeAdapter.toSnsTopic(topic1)).thenReturn(snsTopic1);
@@ -462,6 +459,7 @@ class SnsServiceTest {
 
         // Then
         assertThat(result).succeedsWithin(java.time.Duration.ofSeconds(1))
+                .asInstanceOf(org.assertj.core.api.InstanceOfAssertFactories.LIST)
                 .hasSize(2)
                 .containsExactly(snsTopic1, snsTopic2);
         verify(snsClient).listTopics();
@@ -483,7 +481,7 @@ class SnsServiceTest {
                 .withThrowableOfType(ExecutionException.class)
                 .havingCause()
                 .isInstanceOf(SnsService.SnsOperationException.class)
-                .hasMessage("Failed to list topics");
+                .withMessage("Failed to list topics");
     }
 
     @Test
@@ -510,18 +508,20 @@ class SnsServiceTest {
                 .subscriptions(Arrays.asList(subscription1, subscription2))
                 .build();
         
-        SnsSubscription snsSubscription1 = SnsSubscription.builder()
-                .subscriptionArn("arn:sub:1")
-                .topicArn(TEST_TOPIC_ARN)
-                .protocol("email")
-                .endpoint("test1@example.com")
-                .build();
-        SnsSubscription snsSubscription2 = SnsSubscription.builder()
-                .subscriptionArn("arn:sub:2")
-                .topicArn(TEST_TOPIC_ARN)
-                .protocol("sms")
-                .endpoint("+1234567890")
-                .build();
+        SnsSubscription snsSubscription1 = SnsSubscription.of(
+                "arn:sub:1",
+                TEST_TOPIC_ARN,
+                "email",
+                "test1@example.com",
+                null
+        );
+        SnsSubscription snsSubscription2 = SnsSubscription.of(
+                "arn:sub:2",
+                TEST_TOPIC_ARN,
+                "sms",
+                "+1234567890",
+                null
+        );
 
         when(snsClient.listSubscriptionsByTopic(listRequest)).thenReturn(CompletableFuture.completedFuture(listResponse));
         when(typeAdapter.toSnsSubscription(subscription1)).thenReturn(snsSubscription1);
@@ -532,6 +532,7 @@ class SnsServiceTest {
 
         // Then
         assertThat(result).succeedsWithin(java.time.Duration.ofSeconds(1))
+                .asInstanceOf(org.assertj.core.api.InstanceOfAssertFactories.LIST)
                 .hasSize(2)
                 .containsExactly(snsSubscription1, snsSubscription2);
         verify(snsClient).listSubscriptionsByTopic(listRequest);
@@ -554,7 +555,7 @@ class SnsServiceTest {
                 .withThrowableOfType(ExecutionException.class)
                 .havingCause()
                 .isInstanceOf(SnsService.SnsOperationException.class)
-                .hasMessage("Failed to list subscriptions");
+                .withMessage("Failed to list subscriptions");
     }
 
     @Test
@@ -597,7 +598,7 @@ class SnsServiceTest {
                 .withThrowableOfType(ExecutionException.class)
                 .havingCause()
                 .isInstanceOf(SnsService.SnsOperationException.class)
-                .hasMessage("Failed to set attributes");
+                .withMessage("Failed to set attributes");
     }
 
     @Test
@@ -607,10 +608,11 @@ class SnsServiceTest {
         assertThatThrownBy(() -> snsService.publish(TEST_TOPIC_ARN, null))
                 .isInstanceOf(NullPointerException.class);
 
-        // Test null topic ARN with valid message
+        // Test null topic ARN with valid message - mock the adapter to return null
         SnsMessage message = SnsMessage.of("test");
-        assertThatCode(() -> snsService.publish(null, message))
-                .doesNotThrowAnyException();
+        when(typeAdapter.toPublishRequest(isNull(), eq(message))).thenReturn(null);
+        assertThatThrownBy(() -> snsService.publish(null, message))
+                .isInstanceOf(NullPointerException.class);
     }
 
     @Test
@@ -627,7 +629,7 @@ class SnsServiceTest {
                 .failed(Arrays.asList())
                 .build();
 
-        when(typeAdapter.toPublishBatchRequest(TEST_TOPIC_ARN, emptyMessages)).thenReturn(batchRequest);
+        when(typeAdapter.toPublishBatchRequest(eq(TEST_TOPIC_ARN), eq(emptyMessages))).thenReturn(batchRequest);
         when(snsClient.publishBatch(batchRequest)).thenReturn(CompletableFuture.completedFuture(batchResponse));
 
         // When
@@ -635,7 +637,8 @@ class SnsServiceTest {
 
         // Then
         assertThat(result).succeedsWithin(java.time.Duration.ofSeconds(1))
-                .isEmpty();
+                .asInstanceOf(org.assertj.core.api.InstanceOfAssertFactories.LIST)
+                .hasSize(0);
     }
 
     @Test

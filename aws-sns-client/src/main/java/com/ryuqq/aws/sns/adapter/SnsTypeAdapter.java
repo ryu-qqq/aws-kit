@@ -4,7 +4,8 @@ import com.ryuqq.aws.sns.types.SnsMessage;
 import com.ryuqq.aws.sns.types.SnsPublishResult;
 import com.ryuqq.aws.sns.types.SnsSubscription;
 import com.ryuqq.aws.sns.types.SnsTopic;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import software.amazon.awssdk.services.sns.model.*;
 
@@ -16,9 +17,10 @@ import java.util.stream.Collectors;
 /**
  * Type adapter for converting between AWS SDK types and abstracted types
  */
-@Slf4j
 @Component
 public class SnsTypeAdapter {
+
+    private static final Logger log = LoggerFactory.getLogger(SnsTypeAdapter.class);
     
     /**
      * Convert SnsMessage to PublishRequest
@@ -123,59 +125,53 @@ public class SnsTypeAdapter {
      * Convert PublishResponse to SnsPublishResult
      */
     public SnsPublishResult toPublishResult(PublishResponse response) {
-        return SnsPublishResult.builder()
-                .messageId(response.messageId())
-                .sequenceNumber(response.sequenceNumber())
-                .build();
+        return SnsPublishResult.of(response.messageId(), response.sequenceNumber());
     }
     
     /**
      * Convert PublishBatchResultEntry to SnsPublishResult
      */
     public SnsPublishResult toBatchPublishResult(PublishBatchResultEntry entry) {
-        return SnsPublishResult.builder()
-                .messageId(entry.messageId())
-                .sequenceNumber(entry.sequenceNumber())
-                .build();
+        return SnsPublishResult.of(entry.messageId(), entry.sequenceNumber());
     }
     
     /**
      * Convert Topic to SnsTopic
      */
     public SnsTopic toSnsTopic(Topic topic) {
-        return SnsTopic.builder()
-                .topicArn(topic.topicArn())
-                .build();
+        return SnsTopic.of(topic.topicArn());
     }
     
     /**
      * Convert CreateTopicResponse to SnsTopic
      */
     public SnsTopic toSnsTopic(CreateTopicResponse response) {
-        return SnsTopic.builder()
-                .topicArn(response.topicArn())
-                .build();
+        return SnsTopic.of(response.topicArn());
     }
     
     /**
      * Convert Subscription to SnsSubscription
      */
     public SnsSubscription toSnsSubscription(Subscription subscription) {
-        return SnsSubscription.builder()
-                .subscriptionArn(subscription.subscriptionArn())
-                .topicArn(subscription.topicArn())
-                .protocol(subscription.protocol())
-                .endpoint(subscription.endpoint())
-                .owner(subscription.owner())
-                .build();
+        return SnsSubscription.of(
+                subscription.subscriptionArn(),
+                subscription.topicArn(),
+                subscription.protocol(),
+                subscription.endpoint(),
+                subscription.owner()
+        );
     }
     
     /**
      * Convert SubscribeResponse to SnsSubscription
      */
     public SnsSubscription toSnsSubscription(SubscribeResponse response) {
-        return SnsSubscription.builder()
-                .subscriptionArn(response.subscriptionArn())
-                .build();
+        return SnsSubscription.of(
+                response.subscriptionArn(),
+                null,
+                null,
+                null,
+                null
+        );
     }
 }

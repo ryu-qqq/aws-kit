@@ -3,8 +3,8 @@ package com.ryuqq.aws.sqs.consumer.container;
 import com.ryuqq.aws.sqs.consumer.annotation.SqsListener;
 import com.ryuqq.aws.sqs.consumer.component.*;
 import com.ryuqq.aws.sqs.service.SqsService;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
@@ -16,22 +16,43 @@ import java.util.concurrent.ExecutorService;
  * Factory for creating SqsListenerContainer instances with proper dependency injection.
  * Follows the Factory pattern and ensures proper component wiring.
  */
-@Slf4j
 @Component
-@RequiredArgsConstructor
 public class SqsListenerContainerFactory {
-    
+
+    private static final Logger log = LoggerFactory.getLogger(SqsListenerContainerFactory.class);
+
     private final SqsService sqsService;
     private final Environment environment;
     private final ApplicationContext applicationContext;
     private final ExecutorService executorService;
-    
+
     // Component dependencies
     private final MessagePoller messagePoller;
     private final MessageProcessor messageProcessor;
     private final RetryManager retryManager;
     private final DeadLetterQueueHandler dlqHandler;
     private final MetricsCollector metricsCollector;
+
+    public SqsListenerContainerFactory(
+            SqsService sqsService,
+            Environment environment,
+            ApplicationContext applicationContext,
+            ExecutorService executorService,
+            MessagePoller messagePoller,
+            MessageProcessor messageProcessor,
+            RetryManager retryManager,
+            DeadLetterQueueHandler dlqHandler,
+            MetricsCollector metricsCollector) {
+        this.sqsService = sqsService;
+        this.environment = environment;
+        this.applicationContext = applicationContext;
+        this.executorService = executorService;
+        this.messagePoller = messagePoller;
+        this.messageProcessor = messageProcessor;
+        this.retryManager = retryManager;
+        this.dlqHandler = dlqHandler;
+        this.metricsCollector = metricsCollector;
+    }
     
     /**
      * Create a new SqsListenerContainer with the refactored implementation.

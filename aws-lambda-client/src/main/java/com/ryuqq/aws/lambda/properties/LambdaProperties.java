@@ -1,6 +1,5 @@
 package com.ryuqq.aws.lambda.properties;
 
-import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
@@ -27,10 +26,9 @@ import java.time.Duration;
  * - maxRetries: 너무 높으면 응답 시간 지연, 너무 낮으면 일시적 장애에 취약
  * - maxConcurrentInvocations: AWS 계정의 동시 실행 한도와 연관
  */
-@Data
 @Component
 @ConfigurationProperties(prefix = "aws.lambda")
-public class LambdaProperties {
+public record LambdaProperties(
 
     /**
      * 함수 호출 타임아웃 설정
@@ -46,28 +44,7 @@ public class LambdaProperties {
      * - 너무 길면 장애 상황에서 빠른 실패 처리 불가
      * - 함수별로 다른 타임아웃이 필요한 경우 별도 설정 고려
      */
-    private Duration timeout = Duration.ofMinutes(15);
-
-    /**
-     * 재시도 최대 횟수
-     * 
-     * 일시적 장애 발생시 최대 몇 번까지 재시도할지 설정합니다.
-     * 5xx 오류, 429 Throttling 오류 등에 대해서만 재시도됩니다.
-     * 
-     * 기본값: 3회
-     * 권장값: 3-5회 (상황에 따라 조정)
-     * 
-     * 고려사항:
-     * - 0: 재시도 없음 (즉시 실패)
-     * - 1-3: 일반적인 웹 애플리케이션
-     * - 4-5: 중요한 배치 처리 작업
-     * - 6 이상: 일반적으로 권장하지 않음 (너무 긴 지연시간)
-     * 
-     * 주의사항:
-     * - 멱등성이 보장되지 않는 함수는 재시도 횟수를 낮게 설정
-     * - 재시도 시간은 지수적으로 증가 (1초, 2초, 4초, 8초...)
-     */
-    private int maxRetries = 3;
+    Duration timeout,
 
     /**
      * 최대 동시 실행 수
@@ -89,7 +66,7 @@ public class LambdaProperties {
      * - Throttles 메트릭으로 한도 초과 확인
      * - Duration 메트릭으로 성능 영향 확인
      */
-    private int maxConcurrentInvocations = 10;
+    int maxConcurrentInvocations,
 
     /**
      * 배치 호출시 기본 타임아웃 (밀리초)
@@ -106,7 +83,7 @@ public class LambdaProperties {
      * - 네트워크 지연 및 재시도 시간
      * - 사용자 경험 vs 완전성 요구사항
      */
-    private long defaultBatchTimeoutMs = 900_000L;
+    long defaultBatchTimeoutMs,
 
     /**
      * 배치 호출시 기본 재시도 정책
@@ -117,7 +94,7 @@ public class LambdaProperties {
      * INDIVIDUAL: 각 Lambda 호출의 개별 재시도 설정 사용  
      * BATCH_LEVEL: 배치 레벨에서 통합 재시도 정책 적용
      */
-    private String defaultRetryPolicy = "NONE";
+    String defaultRetryPolicy,
 
     /**
      * 상관관계 ID 자동 생성 여부
@@ -130,5 +107,14 @@ public class LambdaProperties {
      * 자동 생성 형식: "lambda-" + UUID
      * 예시: "lambda-550e8400-e29b-41d4-a716-446655440000"
      */
-    private boolean autoGenerateCorrelationId = true;
+    boolean autoGenerateCorrelationId
+) {
+    
+    public LambdaProperties {
+        timeout = timeout != null ? timeout : Duration.ofMinutes(15);
+        maxConcurrentInvocations = maxConcurrentInvocations == 0 ? 10 : maxConcurrentInvocations;
+        defaultBatchTimeoutMs = defaultBatchTimeoutMs == 0 ? 900_000L : defaultBatchTimeoutMs;
+        defaultRetryPolicy = defaultRetryPolicy != null ? defaultRetryPolicy : "NONE";
+        // autoGenerateCorrelationId는 설정되지 않으면 true가 기본값 (자동 생성 활성화)
+    }
 }

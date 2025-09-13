@@ -5,7 +5,8 @@ import com.ryuqq.aws.sqs.consumer.container.SqsListenerContainer;
 import com.ryuqq.aws.sqs.consumer.executor.ExecutorServiceProvider;
 import com.ryuqq.aws.sqs.consumer.registry.SqsListenerContainerRegistry;
 import com.ryuqq.aws.sqs.service.SqsService;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.context.ApplicationContext;
@@ -20,10 +21,11 @@ import java.util.concurrent.ExecutorService;
  * Bean post-processor that scans for @SqsListener annotations 
  * and creates corresponding listener containers.
  */
-@Slf4j
 @Component
 public class SqsListenerAnnotationBeanPostProcessor implements BeanPostProcessor, ApplicationContextAware {
-    
+
+    private static final Logger log = LoggerFactory.getLogger(SqsListenerAnnotationBeanPostProcessor.class);
+
     private ApplicationContext applicationContext;
     private SqsListenerContainerRegistry containerRegistry;
     private SqsService sqsService;
@@ -59,25 +61,45 @@ public class SqsListenerAnnotationBeanPostProcessor implements BeanPostProcessor
     
     private void initializeDependenciesIfNeeded() {
         if (containerRegistry == null) {
-            containerRegistry = applicationContext.getBean(SqsListenerContainerRegistry.class);
+            try {
+                containerRegistry = applicationContext.getBean(SqsListenerContainerRegistry.class);
+            } catch (BeansException e) {
+                log.warn("SqsListenerContainerRegistry not available in application context: {}", e.getMessage());
+            }
         }
         if (sqsService == null) {
-            sqsService = applicationContext.getBean(SqsService.class);
+            try {
+                sqsService = applicationContext.getBean(SqsService.class);
+            } catch (BeansException e) {
+                log.warn("SqsService not available in application context: {}", e.getMessage());
+            }
         }
         if (environment == null) {
             environment = applicationContext.getEnvironment();
         }
         if (executorServiceProvider == null) {
-            executorServiceProvider = applicationContext.getBean(ExecutorServiceProvider.class);
+            try {
+                executorServiceProvider = applicationContext.getBean(ExecutorServiceProvider.class);
+            } catch (BeansException e) {
+                // Handle missing ExecutorServiceProvider gracefully during tests or incomplete contexts
+                log.warn("ExecutorServiceProvider not available in application context: {}", e.getMessage());
+                // We'll handle this case in processListenerMethod
+            }
         }
     }
     
     private void processListenerMethod(Object bean, Method method, SqsListener annotation, String beanName) {
         try {
             validateListenerMethod(method, annotation);
-            
+
+            if (containerRegistry == null || sqsService == null || executorServiceProvider == null) {
+                log.warn("Required dependencies not available (containerRegistry: {}, sqsService: {}, executorServiceProvider: {}), skipping listener registration for {}.{}",
+                    containerRegistry != null, sqsService != null, executorServiceProvider != null, beanName, method.getName());
+                return;
+            }
+
             String containerId = generateContainerId(beanName, method, annotation);
-            
+
             // Create dedicated executors for this container using the provider
             ExecutorService messageExecutor = executorServiceProvider.createMessageProcessingExecutor(containerId);
             ExecutorService pollingExecutor = executorServiceProvider.createPollingExecutor(containerId);

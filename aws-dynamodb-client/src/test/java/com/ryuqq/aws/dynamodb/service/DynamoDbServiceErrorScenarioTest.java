@@ -8,6 +8,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.testcontainers.containers.localstack.LocalStackContainer;
 import org.testcontainers.containers.localstack.LocalStackContainer.Service;
 import org.testcontainers.junit.jupiter.Container;
@@ -38,8 +39,12 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 /**
  * DynamoDB Service의 에러 시나리오에 대한 테스트
  * 네트워크 오류, 잘못된 설정, 예외 상황 처리 검증
+ *
+ * These tests require Docker to be available and running.
+ * Set INTEGRATION_TESTS=enabled to run these tests.
  */
 @Testcontainers
+@EnabledIfEnvironmentVariable(named = "INTEGRATION_TESTS", matches = "enabled")
 @DisplayName("DynamoDB Service Error Scenario Tests")
 class DynamoDbServiceErrorScenarioTest {
 

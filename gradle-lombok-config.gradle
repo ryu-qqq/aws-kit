@@ -1,0 +1,325 @@
+/**
+ * Gradle Configuration for Lombok Policy Enforcement
+ * 
+ * This configuration provides:
+ * 1. Proper Lombok dependency setup
+ * 2. ArchUnit test dependencies
+ * 3. Checkstyle integration with Lombok rules
+ * 4. Build-time policy enforcement
+ * 
+ * Usage: Apply this configuration in your build.gradle or include relevant sections
+ */
+
+// =============================================================================
+// Plugin Configuration
+// =============================================================================
+
+plugins {
+    id 'java-library'
+    id 'checkstyle'
+    // Add other plugins as needed
+}
+
+// =============================================================================
+// Version Management
+// =============================================================================
+
+ext {
+    lombokVersion = '1.18.30'
+    archunitVersion = '1.2.1'
+    checkstyleVersion = '10.12.4'
+    
+    // Other version declarations
+    springBootVersion = '3.3.4'
+    junitVersion = '5.10.0'
+}
+
+// =============================================================================
+// Lombok Configuration
+// =============================================================================
+
+dependencies {
+    // Lombok - compileOnly to prevent inclusion in final JAR
+    compileOnly "org.projectlombok:lombok:${lombokVersion}"
+    annotationProcessor "org.projectlombok:lombok:${lombokVersion}"
+    
+    // Test-only Lombok support
+    testCompileOnly "org.projectlombok:lombok:${lombokVersion}"
+    testAnnotationProcessor "org.projectlombok:lombok:${lombokVersion}"
+    
+    // ArchUnit for architecture testing and Lombok policy enforcement
+    testImplementation "com.tngtech.archunit:archunit-junit5:${archunitVersion}"
+    
+    // Standard test dependencies
+    testImplementation "org.junit.jupiter:junit-jupiter:${junitVersion}"
+    testImplementation 'org.assertj:assertj-core'
+    testImplementation 'org.mockito:mockito-core'
+    testImplementation 'org.mockito:mockito-junit-jupiter'
+}
+
+// =============================================================================
+// Compiler Configuration for Lombok
+// =============================================================================
+
+configurations {
+    compileOnly {
+        extendsFrom annotationProcessor
+    }
+}
+
+tasks.withType(JavaCompile) {
+    options.encoding = 'UTF-8'
+    options.compilerArgs += [
+        '-parameters',
+        '-Xlint:all',
+        '-Xlint:-processing',  // Suppress annotation processing warnings
+        '-Xlint:-path'         // Suppress path warnings for generated code
+    ]
+    
+    // Lombok-specific compiler configuration
+    options.annotationProcessorPath = configurations.annotationProcessor
+}
+
+// =============================================================================
+// Checkstyle Configuration for Lombok Policy
+// =============================================================================
+
+checkstyle {
+    toolVersion = checkstyleVersion
+    configFile = file('checkstyle-lombok.xml')  // Points to our Lombok-specific rules
+    ignoreFailures = false  // Fail build on policy violations
+    maxWarnings = 0         // Treat warnings as errors for strict enforcement
+    
+    // Optional: separate config for main and test code
+    // configDirectory = file('config/checkstyle')
+}
+
+tasks.withType(Checkstyle) {
+    reports {
+        xml.required = true
+        html.required = true
+        html.stylesheet = resources.text.fromFile('config/checkstyle/checkstyle.xsl')
+    }
+    
+    // Exclude generated code from Lombok checks
+    exclude '**/generated/**'
+    exclude '**/build/**'
+}
+
+// Custom task for Lombok policy validation
+task lombokPolicyCheck(type: Checkstyle) {
+    description = 'Validates Lombok usage against project policies'
+    group = 'verification'
+    
+    source = fileTree('src/main/java') + fileTree('src/test/java')
+    include '**/*.java'
+    exclude '**/generated/**'
+    
+    classpath = files()
+    configFile = file('checkstyle-lombok.xml')
+    
+    reports {
+        xml.required = true
+        html.required = true
+        html.destination = file("${project.reporting.baseDir}/lombok-policy/")
+    }
+}
+
+// =============================================================================
+// ArchUnit Configuration for Architecture Testing
+// =============================================================================
+
+test {
+    useJUnitPlatform {
+        // Include ArchUnit tests
+        includeEngines 'junit-jupiter'
+    }
+    
+    testLogging {
+        events "passed", "skipped", "failed"
+        exceptionFormat "full"
+        showExceptions true
+        showCauses true
+        showStackTraces true
+    }
+    
+    // ArchUnit-specific configuration
+    systemProperties = [
+        'archunit.default.no_analysis_cache': 'true',  // Disable cache for reliable testing
+        'archunit.freeze.store.default.path': 'archunit_store'
+    ]
+    
+    // Increase memory for large codebases
+    maxHeapSize = "2g"
+    
+    finalizedBy lombokPolicyCheck  // Run Lombok policy check after tests
+}
+
+// Custom task to run only ArchUnit tests
+task archTest(type: Test) {
+    description = 'Runs ArchUnit architecture tests including Lombok policy enforcement'
+    group = 'verification'
+    
+    useJUnitPlatform {
+        includeEngines 'junit-jupiter'
+        includeTags 'archunit'
+    }
+    
+    // Include architecture test packages
+    include '**/architecture/**'
+    include '**/*ArchTest*'
+    
+    testLogging {
+        events "passed", "skipped", "failed"
+        exceptionFormat "full"
+    }
+}
+
+// =============================================================================
+// IDE Configuration for Lombok
+// =============================================================================
+
+// IntelliJ IDEA configuration
+idea {
+    module {
+        // Mark directories for IntelliJ
+        downloadJavadoc = true
+        downloadSources = true
+    }
+}
+
+// Eclipse configuration  
+eclipse {
+    classpath {
+        // Add Lombok to annotation processing classpath
+        containers 'org.eclipse.jdt.launching.JRE_CONTAINER'
+        file {
+            whenMerged { classpath ->
+                def lombok = new org.gradle.plugins.ide.eclipse.model.Library(
+                    fileReference: file("${gradle.gradleUserHomeDir}/caches/modules-2/files-2.1/org.projectlombok/lombok/${lombokVersion}/lombok-${lombokVersion}.jar")
+                )
+                classpath.entries.add(lombok)
+            }
+        }
+    }
+}
+
+// =============================================================================
+// Build Lifecycle Integration
+// =============================================================================
+
+// Make sure architecture tests run before build
+check.dependsOn archTest
+
+// Run Lombok policy check with other verification tasks
+check.dependsOn lombokPolicyCheck
+
+// Fail fast on Lombok policy violations
+compileJava.finalizedBy lombokPolicyCheck
+
+// =============================================================================
+// Custom Tasks for Lombok Management
+// =============================================================================
+
+task lombokInfo {
+    description = 'Displays information about Lombok configuration and policies'
+    group = 'help'
+    
+    doLast {
+        println """
+        =============================================================================
+        Lombok Configuration Information
+        =============================================================================
+        
+        Lombok Version: ${lombokVersion}
+        ArchUnit Version: ${archunitVersion}
+        Checkstyle Version: ${checkstyleVersion}
+        
+        Policy Summary:
+        - @Data annotation is FORBIDDEN (use specific annotations)
+        - @Builder allowed only in types/DTO packages
+        - @Setter forbidden on configuration/properties classes  
+        - @RequiredArgsConstructor allowed with final fields only
+        - @Slf4j is allowed everywhere for logging
+        - @EqualsAndHashCode forbidden on entity classes
+        
+        Enforcement:
+        - ArchUnit tests: ./src/test/java/**/architecture/*ArchTest.java
+        - Checkstyle rules: ./checkstyle-lombok.xml
+        - Build integration: Policies checked on compilation
+        
+        Commands:
+        - ./gradlew archTest          # Run architecture tests
+        - ./gradlew lombokPolicyCheck # Check Lombok policies  
+        - ./gradlew check             # Run all verification including policies
+        
+        =============================================================================
+        """
+    }
+}
+
+// =============================================================================
+// Example Usage in Multi-module Project
+// =============================================================================
+
+// For multi-module projects, apply this configuration to subprojects:
+/*
+subprojects {
+    apply from: rootProject.file('gradle-lombok-config.gradle')
+    
+    // Additional module-specific configuration
+    dependencies {
+        // Module-specific dependencies
+    }
+}
+*/
+
+// =============================================================================
+// Quality Gates Configuration
+// =============================================================================
+
+// Fail build if any Lombok policy violations are found
+gradle.taskGraph.whenReady { taskGraph ->
+    if (taskGraph.hasTask(':build') || taskGraph.hasTask(':check')) {
+        lombokPolicyCheck.ignoreFailures = false
+        archTest.ignoreFailures = false
+    }
+}
+
+// =============================================================================
+// Documentation and Help
+// =============================================================================
+
+task lombokHelp {
+    description = 'Shows help for Lombok policy enforcement'
+    group = 'help'
+    
+    doLast {
+        println """
+        Lombok Policy Enforcement Help
+        ==============================
+        
+        Allowed Lombok Annotations:
+        - @Slf4j              ✅ Always allowed for logging
+        - @RequiredArgsConstructor ✅ With final fields only
+        - @Getter             ✅ Preferred over @Data
+        - @Builder            ✅ Only in types/DTO packages
+        
+        Forbidden Lombok Annotations:
+        - @Data               ❌ Too permissive, use specific annotations
+        - @Setter             ❌ On configuration/service classes  
+        - @EqualsAndHashCode  ❌ On entity classes (JPA concerns)
+        
+        Best Practices:
+        1. Use @Builder for immutable DTOs and type classes
+        2. Use @RequiredArgsConstructor with final fields for services
+        3. Prefer constructor injection over field injection
+        4. Keep configuration classes immutable
+        
+        Policy Violations:
+        - Check build output for specific violation locations
+        - ArchUnit tests provide detailed failure messages
+        - Checkstyle reports available in build/reports/checkstyle/
+        """
+    }
+}

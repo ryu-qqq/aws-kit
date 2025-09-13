@@ -1,11 +1,9 @@
 package com.ryuqq.aws.sqs.consumer.properties;
 
-import lombok.Getter;
-import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.util.StringUtils;
 
-import javax.annotation.PostConstruct;
+import jakarta.annotation.PostConstruct;
 
 /**
  * SQS Consumer 설정 속성 클래스
@@ -37,8 +35,6 @@ import javax.annotation.PostConstruct;
  * @see SqsListener
  * @see ExecutorServiceProvider
  */
-@Getter
-@Setter
 @ConfigurationProperties(prefix = "aws.sqs.consumer")
 public class SqsConsumerProperties {
     
@@ -48,7 +44,7 @@ public class SqsConsumerProperties {
      * 개별 리스너에서 @SqsListener의 maxConcurrentMessages를 지정하지 않을 경우 사용되는 기본값입니다.
      * 너무 큰 값을 설정하면 메모리 부족이나 데이터베이스 연결 고갈이 발생할 수 있습니다.
      */
-    private int defaultMaxConcurrentMessages = 10;
+    private final int defaultMaxConcurrentMessages;
     
     /**
      * 기본 Long Polling 타임아웃 (초 단위, 0-20 범위)
@@ -57,7 +53,7 @@ public class SqsConsumerProperties {
      * 20초로 설정하면 메시지가 도착할 때까지 최대 20초간 대기하다가 결과를 반환합니다.
      * 높은 값일수록 빈 폴링 요청이 줄어들어 비용이 절약됩니다.
      */
-    private int defaultPollTimeoutSeconds = 20;
+    private final int defaultPollTimeoutSeconds;
     
     /**
      * 기본 메시지 가시성 타임아웃 (초 단위)
@@ -66,7 +62,7 @@ public class SqsConsumerProperties {
      * 이 시간 내에 메시지를 삭제하지 않으면 다시 다른 소비자가 수신할 수 있습니다.
      * 메시지 처리 시간보다 충분히 긴 값으로 설정해야 합니다.
      */
-    private int defaultMessageVisibilitySeconds = 30;
+    private final int defaultMessageVisibilitySeconds;
     
     /**
      * 기본 폴링당 최대 메시지 수 (1-10 범위)
@@ -75,7 +71,7 @@ public class SqsConsumerProperties {
      * AWS SQS의 제한으로 인해 최대 10개까지만 가능합니다.
      * 높은 값일수록 네트워크 효율성이 좋아지지만 메시지 처리 지연이 발생할 수 있습니다.
      */
-    private int defaultMaxMessagesPerPoll = 10;
+    private final int defaultMaxMessagesPerPoll;
     
     /**
      * 기본 배치 처리 크기
@@ -84,7 +80,7 @@ public class SqsConsumerProperties {
      * 배치 처리는 성능을 향상시키지만 오류 전파성이 높아질 수 있습닄다.
      * maxMessagesPerPoll 값과 일치시키는 것이 일반적입니다.
      */
-    private int defaultBatchSize = 10;
+    private final int defaultBatchSize;
     
     /**
      * 기본 최대 재시도 횟수
@@ -93,7 +89,7 @@ public class SqsConsumerProperties {
      * 0으로 설정하면 재시도하지 않고 즉시 실패 처리를 수행합니다.
      * 너무 높은 값은 비정상 메시지의 무한 반복 처리를 유발할 수 있습니다.
      */
-    private int defaultMaxRetryAttempts = 3;
+    private final int defaultMaxRetryAttempts;
     
     /**
      * 기본 재시도 지연 시간 (밀리초 단위)
@@ -102,7 +98,7 @@ public class SqsConsumerProperties {
      * 너무 짧으면 서버에 부하를 주고, 너무 길면 전체 처리 성능이 저하됩니다.
      * Exponential Backoff 전략 대신 고정 지연 시간을 사용합니다.
      */
-    private long defaultRetryDelayMillis = 1000L;
+    private final long defaultRetryDelayMillis;
     
     /**
      * 기본 메시지 자동 삭제 동작
@@ -111,7 +107,7 @@ public class SqsConsumerProperties {
      * false로 설정하면 수동으로 메시지 삭제를 처리해야 합니다.
      * 대부분의 경우 true로 사용하여 중복 처리를 방지합니다.
      */
-    private boolean defaultAutoDelete = true;
+    private final boolean defaultAutoDelete;
     
     /**
      * 메시지 처리용 스레드 풀 크기 (하위 호환성)
@@ -119,7 +115,8 @@ public class SqsConsumerProperties {
      * @deprecated threadPoolCoreSize와 threadPoolMaxSize를 사용하세요
      * 기존 설정과의 하위 호환성을 위해 유지되는 속성입니다.
      */
-    private int threadPoolSize = 20;
+    @Deprecated(since = "1.0.0")
+    private int threadPoolSize;
     
     /**
      * 스레드 풀 기본 크기
@@ -128,7 +125,7 @@ public class SqsConsumerProperties {
      * 이 수만큼의 스레드는 작업이 없어도 대기 상태로 유지됩니다.
      * Virtual Thread 모드에서는 이 설정이 무시됩니다.
      */
-    private int threadPoolCoreSize = 10;
+    private int threadPoolCoreSize;
     
     /**
      * 스레드 풀 최대 크기
@@ -137,7 +134,7 @@ public class SqsConsumerProperties {
      * 작업 대기열이 꽉 찌고 새로운 작업이 들어올 때 이 값까지 스레드를 생성합니다.
      * Virtual Thread 모드에서는 이 설정이 무시됩니다.
      */
-    private int threadPoolMaxSize = 50;
+    private int threadPoolMaxSize;
     
     /**
      * 스레드 풀 대기열 용량
@@ -146,7 +143,7 @@ public class SqsConsumerProperties {
      * 이 크기를 초과하면 새로운 스레드를 생성하거나 작업을 거부합니다.
      * Virtual Thread 모드에서는 대기열 개념이 없어 이 설정이 무시됩니다.
      */
-    private int threadPoolQueueCapacity = 100;
+    private final int threadPoolQueueCapacity;
     
     /**
      * 스레드 풀 생존 시간 (초 단위)
@@ -155,7 +152,7 @@ public class SqsConsumerProperties {
      * 이 시간이 초과하면 유휴 스레드는 종료되어 자원을 절약합니다.
      * Virtual Thread 모드에서는 이 설정이 무시됩니다.
      */
-    private int threadPoolKeepAliveSeconds = 60;
+    private final int threadPoolKeepAliveSeconds;
     
     /**
      * 컨슈머 스레드 이름 접두사
@@ -164,7 +161,7 @@ public class SqsConsumerProperties {
      * 디버깅과 모니터링에서 스레드를 식별하는 데 도움이 됩니다.
      * 예시: "sqs-consumer-1", "sqs-consumer-poller-queue1" 등
      */
-    private String threadNamePrefix = "sqs-consumer-";
+    private final String threadNamePrefix;
     
     /**
      * 컨슈머 메트릭 수집 활성화 여부
@@ -173,7 +170,7 @@ public class SqsConsumerProperties {
      * false로 설정하면 메트릭 수집을 중단하여 성능을 약간 향상시킬 수 있습니다.
      * 프로덕션 환경에서는 모니터링을 위해 활성화하는 것을 권장합니다.
      */
-    private boolean enableMetrics = true;
+    private final boolean enableMetrics;
     
     /**
      * 헬스 체크 간격 (밀리초 단위)
@@ -182,7 +179,7 @@ public class SqsConsumerProperties {
      * 이 간격으로 컨테이너의 상태, 메트릭, 네트워크 연결 상태 등을 모니터링합니다.
      * 너무 짧으면 성능에 영향을 주고, 너무 길면 문제 탐지가 지연됩니다.
      */
-    private long healthCheckIntervalMillis = 30000L;
+    private final long healthCheckIntervalMillis;
     
     /**
      * 종료 타임아웃 (밀리초 단위)
@@ -191,7 +188,7 @@ public class SqsConsumerProperties {
      * 이 시간을 초과하면 강제로 종료되며, 진행 중인 메시지 처리가 중단될 수 있습니다.
      * 최대 메시지 처리 시간보다 충분히 큰 값으로 설정해야 합니다.
      */
-    private long shutdownTimeoutMillis = 30000L;
+    private final long shutdownTimeoutMillis;
     
     /**
      * ExecutorService 설정 속성
@@ -199,56 +196,127 @@ public class SqsConsumerProperties {
      * Platform Thread와 Virtual Thread 중 선택하고 세부 동작을 제어하는 설정들입니다.
      * Java 21 환경에서 Virtual Thread를 사용할 수 있으며, 그렇지 않은 경우 Platform Thread로 자동 동작합니다.
      */
-    private final Executor executor = new Executor();
+    private final Executor executor;
+
+    public SqsConsumerProperties(
+            Integer defaultMaxConcurrentMessages,
+            Integer defaultPollTimeoutSeconds,
+            Integer defaultMessageVisibilitySeconds,
+            Integer defaultMaxMessagesPerPoll,
+            Integer defaultBatchSize,
+            Integer defaultMaxRetryAttempts,
+            Long defaultRetryDelayMillis,
+            Boolean defaultAutoDelete,
+            Integer threadPoolSize,
+            Integer threadPoolCoreSize,
+            Integer threadPoolMaxSize,
+            Integer threadPoolQueueCapacity,
+            Integer threadPoolKeepAliveSeconds,
+            String threadNamePrefix,
+            Boolean enableMetrics,
+            Long healthCheckIntervalMillis,
+            Long shutdownTimeoutMillis,
+            Executor executor) {
+        this.defaultMaxConcurrentMessages = defaultMaxConcurrentMessages != null ? defaultMaxConcurrentMessages : 10;
+        this.defaultPollTimeoutSeconds = defaultPollTimeoutSeconds != null ? defaultPollTimeoutSeconds : 20;
+        this.defaultMessageVisibilitySeconds = defaultMessageVisibilitySeconds != null ? defaultMessageVisibilitySeconds : 30;
+        this.defaultMaxMessagesPerPoll = defaultMaxMessagesPerPoll != null ? defaultMaxMessagesPerPoll : 10;
+        this.defaultBatchSize = defaultBatchSize != null ? defaultBatchSize : 10;
+        this.defaultMaxRetryAttempts = defaultMaxRetryAttempts != null ? defaultMaxRetryAttempts : 3;
+        this.defaultRetryDelayMillis = defaultRetryDelayMillis != null ? defaultRetryDelayMillis : 1000L;
+        this.defaultAutoDelete = defaultAutoDelete != null ? defaultAutoDelete : true;
+        this.threadPoolSize = threadPoolSize != null ? threadPoolSize : 20;
+        this.threadPoolCoreSize = threadPoolCoreSize != null ? threadPoolCoreSize : 10;
+        this.threadPoolMaxSize = threadPoolMaxSize != null ? threadPoolMaxSize : 50;
+        this.threadPoolQueueCapacity = threadPoolQueueCapacity != null ? threadPoolQueueCapacity : 100;
+        this.threadPoolKeepAliveSeconds = threadPoolKeepAliveSeconds != null ? threadPoolKeepAliveSeconds : 60;
+        this.threadNamePrefix = threadNamePrefix != null ? threadNamePrefix : "sqs-consumer-";
+        this.enableMetrics = enableMetrics != null ? enableMetrics : true;
+        this.healthCheckIntervalMillis = healthCheckIntervalMillis != null ? healthCheckIntervalMillis : 30000L;
+        this.shutdownTimeoutMillis = shutdownTimeoutMillis != null ? shutdownTimeoutMillis : 30000L;
+        this.executor = executor != null ? executor : new Executor(null, null, null, null);
+    }
+
+    // Getters
+    public int getDefaultMaxConcurrentMessages() { return defaultMaxConcurrentMessages; }
+    public int getDefaultPollTimeoutSeconds() { return defaultPollTimeoutSeconds; }
+    public int getDefaultMessageVisibilitySeconds() { return defaultMessageVisibilitySeconds; }
+    public int getDefaultMaxMessagesPerPoll() { return defaultMaxMessagesPerPoll; }
+    public int getDefaultBatchSize() { return defaultBatchSize; }
+    public int getDefaultMaxRetryAttempts() { return defaultMaxRetryAttempts; }
+    public long getDefaultRetryDelayMillis() { return defaultRetryDelayMillis; }
+    public boolean isDefaultAutoDelete() { return defaultAutoDelete; }
+    public int getThreadPoolSize() { return threadPoolSize; }
+    public int getThreadPoolCoreSize() { return threadPoolCoreSize; }
+    public int getThreadPoolMaxSize() { return threadPoolMaxSize; }
+    public int getThreadPoolQueueCapacity() { return threadPoolQueueCapacity; }
+    public int getThreadPoolKeepAliveSeconds() { return threadPoolKeepAliveSeconds; }
+    public String getThreadNamePrefix() { return threadNamePrefix; }
+    public boolean isEnableMetrics() { return enableMetrics; }
+    public long getHealthCheckIntervalMillis() { return healthCheckIntervalMillis; }
+    public long getShutdownTimeoutMillis() { return shutdownTimeoutMillis; }
+    public Executor getExecutor() { return executor; }
     
-    @Getter
-    @Setter
-    public static class Executor {
-        
-        /**
-         * ExecutorService 타입: PLATFORM_THREADS, VIRTUAL_THREADS, CUSTOM 중 선택
-         * 
-         * <ul>
-         *   <li><strong>PLATFORM_THREADS</strong>: 전통적인 OS 스레드 사용 (기본값, 하위 호환성)</li>
-         *   <li><strong>VIRTUAL_THREADS</strong>: Java 21+ Virtual Thread 사용 (고성능, I/O 집약적)</li>
-         *   <li><strong>CUSTOM</strong>: 사용자 정의 ExecutorServiceProvider 사용</li>
-         * </ul>
-         * 
-         * Java 21 이전 버전에서 VIRTUAL_THREADS로 설정하면 PLATFORM_THREADS로 대체됩니다.
-         */
-        private ExecutorType type = ExecutorType.PLATFORM_THREADS;
-        
-        /**
-         * Virtual Thread 우선 사용 여부
-         * 
-         * true로 설정하면 Java 21+ 환경에서 Virtual Thread가 사용 가능할 때 자동으로 전환합니다.
-         * type 속성보다 더 지능적인 선택을 원할 때 사용합니다.
-         * 
-         * <h4>동작 방식</h4>
-         * <ul>
-         *   <li>Java 21+ & Virtual Thread 지원 → Virtual Thread 사용</li>
-         *   <li>그 외의 경우 → Platform Thread로 자동 대체</li>
-         * </ul>
-         */
-        private boolean preferVirtualThreads = false;
-        
-        /**
-         * Executor 모니터링 및 메트릭 활성화 여부
-         * 
-         * true로 설정하면 ExecutorService의 상태, 성능, 스레드 풀 사용률 등을 모니터링합니다.
-         * 메트릭 수집은 약간의 성능 비용이 있지만 운영 모니터링에 매우 유용합니다.
-         */
-        private boolean enableMonitoring = true;
-        
-        /**
-         * 사용자 정의 ExecutorServiceProvider 빈 이름
-         * 
-         * type=CUSTOM으로 설정했을 때만 사용되며, Spring 컨텍스트에서 해당 이름의 빈을 찾아 사용합니다.
-         * 사용자가 특별한 ExecutorService 구현체를 제공하고 싶을 때 유용합니다.
-         * 
-         * 예시: "myCustomExecutorProvider"
-         */
-        private String customProviderBeanName;
+    /**
+     * ExecutorService 설정 레코드
+     * 
+     * @param type ExecutorService 타입: PLATFORM_THREADS, VIRTUAL_THREADS, CUSTOM 중 선택
+     * @param preferVirtualThreads Virtual Thread 우선 사용 여부
+     * @param enableMonitoring Executor 모니터링 및 메트릭 활성화 여부
+     * @param customProviderBeanName 사용자 정의 ExecutorServiceProvider 빈 이름
+     */
+    public static record Executor(
+            /**
+             * ExecutorService 타입: PLATFORM_THREADS, VIRTUAL_THREADS, CUSTOM 중 선택
+             * 
+             * <ul>
+             *   <li><strong>PLATFORM_THREADS</strong>: 전통적인 OS 스레드 사용 (기본값, 하위 호환성)</li>
+             *   <li><strong>VIRTUAL_THREADS</strong>: Java 21+ Virtual Thread 사용 (고성능, I/O 집약적)</li>
+             *   <li><strong>CUSTOM</strong>: 사용자 정의 ExecutorServiceProvider 사용</li>
+             * </ul>
+             * 
+             * Java 21 이전 버전에서 VIRTUAL_THREADS로 설정하면 PLATFORM_THREADS로 대체됩니다.
+             */
+            ExecutorType type,
+            
+            /**
+             * Virtual Thread 우선 사용 여부
+             * 
+             * true로 설정하면 Java 21+ 환경에서 Virtual Thread가 사용 가능할 때 자동으로 전환합니다.
+             * type 속성보다 더 지능적인 선택을 원할 때 사용합니다.
+             * 
+             * <h4>동작 방식</h4>
+             * <ul>
+             *   <li>Java 21+ & Virtual Thread 지원 → Virtual Thread 사용</li>
+             *   <li>그 외의 경우 → Platform Thread로 자동 대체</li>
+             * </ul>
+             */
+            Boolean preferVirtualThreads,
+            
+            /**
+             * Executor 모니터링 및 메트릭 활성화 여부
+             * 
+             * true로 설정하면 ExecutorService의 상태, 성능, 스레드 풀 사용률 등을 모니터링합니다.
+             * 메트릭 수집은 약간의 성능 비용이 있지만 운영 모니터링에 매우 유용합니다.
+             */
+            Boolean enableMonitoring,
+            
+            /**
+             * 사용자 정의 ExecutorServiceProvider 빈 이름
+             * 
+             * type=CUSTOM으로 설정했을 때만 사용되며, Spring 컨텍스트에서 해당 이름의 빈을 찾아 사용합니다.
+             * 사용자가 특별한 ExecutorService 구현체를 제공하고 싶을 때 유용합니다.
+             * 
+             * 예시: "myCustomExecutorProvider"
+             */
+            String customProviderBeanName) {
+
+        public Executor {
+            // Apply defaults if null
+            type = type != null ? type : ExecutorType.PLATFORM_THREADS;
+            preferVirtualThreads = preferVirtualThreads != null ? preferVirtualThreads : false;
+            enableMonitoring = enableMonitoring != null ? enableMonitoring : true;
+        }
     }
     
     /**
@@ -409,13 +477,13 @@ public class SqsConsumerProperties {
      * ExecutorService 관련 설정을 검증합니다.
      */
     private void validateExecutorSettings() {
-        if (executor.type == null) {
+        if (executor.type() == null) {
             throw new IllegalArgumentException("executor.type은 null일 수 없습니다");
         }
         
         // CUSTOM 타입일 때 빈 이름 검증
-        if (executor.type == ExecutorType.CUSTOM) {
-            if (!StringUtils.hasText(executor.customProviderBeanName)) {
+        if (executor.type() == ExecutorType.CUSTOM) {
+            if (!StringUtils.hasText(executor.customProviderBeanName())) {
                 throw new IllegalArgumentException(
                     "executor.type이 CUSTOM일 때 customProviderBeanName은 필수입니다"
                 );
@@ -440,14 +508,14 @@ public class SqsConsumerProperties {
         }
         
         // Virtual Thread 우선 설정이 true이고 PLATFORM_THREADS로 설정된 경우
-        if (executor.preferVirtualThreads && executor.type == ExecutorType.PLATFORM_THREADS) {
+        if (executor.preferVirtualThreads() && executor.type() == ExecutorType.PLATFORM_THREADS) {
             // Java 21+ 환경에서는 Virtual Thread로 변경 시도
             try {
                 Class.forName("java.lang.Thread$Builder$OfVirtual");
-                executor.type = ExecutorType.VIRTUAL_THREADS;
-                
-                System.out.println("정보: preferVirtualThreads=true이고 Virtual Thread가 지원되어 " +
-                    "executor.type을 VIRTUAL_THREADS로 자동 변경했습니다");
+                // Since executor is immutable, we create a new instance
+                // This would need to be handled at the configuration level in practice
+                System.out.println("정보: preferVirtualThreads=true이고 Virtual Thread가 지원되지만 " +
+                    "설정 값은 불변입니다. 설정에서 executor.type을 VIRTUAL_THREADS로 변경하세요");
             } catch (ClassNotFoundException e) {
                 System.out.println("정보: preferVirtualThreads=true이지만 Virtual Thread가 " +
                     "지원되지 않아 PLATFORM_THREADS를 사용합니다");
@@ -470,7 +538,7 @@ public class SqsConsumerProperties {
             System.out.printf("스레드 풀: 코어=%d, 최대=%d, 큐=%d, 생존시간=%d초%n",
                 threadPoolCoreSize, threadPoolMaxSize, threadPoolQueueCapacity, threadPoolKeepAliveSeconds);
             System.out.printf("Executor: 타입=%s, 모니터링=%s%n",
-                executor.type, executor.enableMonitoring);
+                executor.type(), executor.enableMonitoring());
             System.out.println("====================================");
         }
     }

@@ -1,5 +1,6 @@
 package com.ryuqq.aws.sqs.consumer;
 
+import com.ryuqq.aws.sqs.consumer.executor.ExecutorServiceProvider;
 import com.ryuqq.aws.sqs.consumer.processor.SqsListenerAnnotationBeanPostProcessor;
 import com.ryuqq.aws.sqs.consumer.properties.SqsConsumerProperties;
 import com.ryuqq.aws.sqs.consumer.registry.SqsListenerContainerRegistry;
@@ -20,7 +21,17 @@ class AwsSqsConsumerAutoConfigurationTest {
     
     private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
         .withConfiguration(AutoConfigurations.of(AwsSqsConsumerAutoConfiguration.class))
-        .withUserConfiguration(TestConfiguration.class);
+        .withUserConfiguration(TestConfiguration.class)
+        .withPropertyValues(
+            "aws.sqs.consumer.default-max-concurrent-messages=10",
+            "aws.sqs.consumer.default-poll-timeout-seconds=20",
+            "aws.sqs.consumer.default-message-visibility-seconds=30",
+            "aws.sqs.consumer.default-max-messages-per-poll=10",
+            "aws.sqs.consumer.default-batch-size=10",
+            "aws.sqs.consumer.thread-pool-size=20",
+            "aws.sqs.consumer.thread-pool-core-size=10",
+            "aws.sqs.consumer.thread-pool-max-size=50"
+        );
     
     @Test
     void autoConfiguration_기본활성화() {
@@ -28,6 +39,7 @@ class AwsSqsConsumerAutoConfigurationTest {
             assertThat(context).hasSingleBean(SqsListenerContainerRegistry.class);
             assertThat(context).hasSingleBean(SqsListenerAnnotationBeanPostProcessor.class);
             assertThat(context).hasSingleBean(SqsConsumerProperties.class);
+            assertThat(context).hasSingleBean(ExecutorServiceProvider.class);
         });
     }
     
@@ -39,6 +51,7 @@ class AwsSqsConsumerAutoConfigurationTest {
                 assertThat(context).hasSingleBean(SqsListenerContainerRegistry.class);
                 assertThat(context).hasSingleBean(SqsListenerAnnotationBeanPostProcessor.class);
                 assertThat(context).hasSingleBean(SqsConsumerProperties.class);
+                assertThat(context).hasSingleBean(ExecutorServiceProvider.class);
             });
     }
     
@@ -57,6 +70,13 @@ class AwsSqsConsumerAutoConfigurationTest {
     void autoConfiguration_SqsService없으면비활성화() {
         new ApplicationContextRunner()
             .withConfiguration(AutoConfigurations.of(AwsSqsConsumerAutoConfiguration.class))
+            .withPropertyValues(
+                "aws.sqs.consumer.default-max-concurrent-messages=10",
+                "aws.sqs.consumer.default-poll-timeout-seconds=20",
+                "aws.sqs.consumer.default-message-visibility-seconds=30",
+                "aws.sqs.consumer.default-max-messages-per-poll=10",
+                "aws.sqs.consumer.default-batch-size=10"
+            )
             .run(context -> {
                 assertThat(context).doesNotHaveBean(SqsListenerContainerRegistry.class);
                 assertThat(context).doesNotHaveBean(SqsListenerAnnotationBeanPostProcessor.class);

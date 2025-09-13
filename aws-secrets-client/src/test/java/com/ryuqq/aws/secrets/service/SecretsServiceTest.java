@@ -505,9 +505,8 @@ class SecretsServiceTest {
         };
 
         // When & Then
-        assertThatThrownBy(() -> secretsService.createSecret(SECRET_NAME, unserializableObject).join())
-                .isInstanceOf(CompletionException.class)
-                .hasCauseInstanceOf(SecretsException.class)
+        assertThatThrownBy(() -> secretsService.createSecret(SECRET_NAME, unserializableObject))
+                .isInstanceOf(SecretsException.class)
                 .hasMessageContaining("Failed to convert to JSON");
     }
 

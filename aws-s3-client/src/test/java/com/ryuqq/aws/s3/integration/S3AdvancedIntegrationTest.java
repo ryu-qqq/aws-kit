@@ -125,16 +125,16 @@ class S3AdvancedIntegrationTest {
 
         // Then
         assertThat(result).isNotNull();
-        assertThat(result.getContentLength()).isGreaterThan(0);
-        assertThat(result.getContentType()).isNotBlank();
-        assertThat(result.getETag()).isEqualTo(etag);
-        assertThat(result.getLastModified()).isNotNull();
-        assertThat(result.getStorageClass()).isEqualTo("STANDARD_IA");
+        assertThat(result.contentLength()).isGreaterThan(0);
+        assertThat(result.contentType()).isNotBlank();
+        assertThat(result.eTag()).isEqualTo(etag);
+        assertThat(result.lastModified()).isNotNull();
+        assertThat(result.storageClass()).isEqualTo("STANDARD_IA");
         
         // 사용자 메타데이터 검증
-        assertThat(result.getUserMetadata()).containsEntry("author", "integration-tester");
-        assertThat(result.getUserMetadata()).containsEntry("document-type", "test");
-        assertThat(result.getUserMetadata()).containsEntry("한글키", "한글값");
+        assertThat(result.userMetadata()).containsEntry("author", "integration-tester");
+        assertThat(result.userMetadata()).containsEntry("document-type", "test");
+        assertThat(result.userMetadata()).containsEntry("한글키", "한글값");
     }
 
     @Test
@@ -209,16 +209,16 @@ class S3AdvancedIntegrationTest {
 
         // 복사된 파일의 메타데이터 검증
         S3Metadata copiedMetadata = s3Service.headObject(TEST_BUCKET, destKey).join();
-        assertThat(copiedMetadata.getUserMetadata()).containsEntry("version", "2.0");
-        assertThat(copiedMetadata.getUserMetadata()).containsEntry("status", "published");
-        assertThat(copiedMetadata.getUserMetadata()).containsEntry("processed", "true");
-        assertThat(copiedMetadata.getStorageClass()).isEqualTo("GLACIER");
+        assertThat(copiedMetadata.userMetadata()).containsEntry("version", "2.0");
+        assertThat(copiedMetadata.userMetadata()).containsEntry("status", "published");
+        assertThat(copiedMetadata.userMetadata()).containsEntry("processed", "true");
+        assertThat(copiedMetadata.storageClass()).isEqualTo("GLACIER");
 
         // 원본 파일의 메타데이터는 변경되지 않았는지 확인
         S3Metadata originalMetadata = s3Service.headObject(TEST_BUCKET, sourceKey).join();
-        assertThat(originalMetadata.getUserMetadata()).containsEntry("version", "1.0");
-        assertThat(originalMetadata.getUserMetadata()).containsEntry("status", "draft");
-        assertThat(originalMetadata.getStorageClass()).isEqualTo("STANDARD");
+        assertThat(originalMetadata.userMetadata()).containsEntry("version", "1.0");
+        assertThat(originalMetadata.userMetadata()).containsEntry("status", "draft");
+        assertThat(originalMetadata.storageClass()).isEqualTo("STANDARD");
     }
 
     @Test
@@ -239,7 +239,7 @@ class S3AdvancedIntegrationTest {
                 .map(key -> s3Service.uploadFile(TEST_BUCKET, key, tempTestFile))
                 .toList();
 
-        CompletableFuture.allOf(uploadFutures.toArray(new CompletableFuture[0])).join();
+        CompletableFuture.allOf(uploadFutures.toArray(new CompletableFuture<?>[0])).join();
 
         // 업로드된 파일들이 존재하는지 확인
         for (String key : keysToUpload) {
@@ -297,7 +297,7 @@ class S3AdvancedIntegrationTest {
 
         // 태그가 삭제되었는지 확인
         S3Tag emptyTags = s3Service.getObjectTags(TEST_BUCKET, key).join();
-        assertThat(emptyTags.getTags()).isEmpty();
+        assertThat(emptyTags.tags()).isEmpty();
     }
 
     @Test
@@ -437,7 +437,7 @@ class S3AdvancedIntegrationTest {
         // 복사된 파일이 대상 버킷에 존재하는지 확인
         S3Metadata copiedMetadata = s3Service.headObject(METADATA_TEST_BUCKET, destKey).join();
         assertThat(copiedMetadata).isNotNull();
-        assertThat(copiedMetadata.getETag()).isEqualTo(originalEtag);
+        assertThat(copiedMetadata.eTag()).isEqualTo(originalEtag);
 
         // 내용 검증
         byte[] copiedContent = s3Service.downloadFile(METADATA_TEST_BUCKET, destKey).join();
@@ -486,7 +486,7 @@ class S3AdvancedIntegrationTest {
                 .map(key -> s3Service.uploadFile(TEST_BUCKET, key, tempTestFile))
                 .toList();
 
-        CompletableFuture.allOf(uploadFutures.toArray(new CompletableFuture[0])).join();
+        CompletableFuture.allOf(uploadFutures.toArray(new CompletableFuture<?>[0])).join();
 
         // When
         List<String> failedKeys = s3Service.deleteObjects(TEST_BUCKET, largeKeyList).join();
@@ -522,7 +522,7 @@ class S3AdvancedIntegrationTest {
         ).join();
 
         S3Metadata originalMetadata = s3Service.headObject(TEST_BUCKET, key).join();
-        assertThat(originalMetadata.getStorageClass()).isEqualTo("STANDARD");
+        assertThat(originalMetadata.storageClass()).isEqualTo("STANDARD");
 
         // When - GLACIER로 복사 (스토리지 클래스 변경)
         String newKey = "storage-class-test/archive-file-glacier.log";
@@ -537,11 +537,11 @@ class S3AdvancedIntegrationTest {
         assertThat(copyEtag).isNotNull();
 
         S3Metadata glacierMetadata = s3Service.headObject(TEST_BUCKET, newKey).join();
-        assertThat(glacierMetadata.getStorageClass()).isEqualTo("GLACIER");
-        assertThat(glacierMetadata.getUserMetadata()).containsEntry("content", "log-data");
+        assertThat(glacierMetadata.storageClass()).isEqualTo("GLACIER");
+        assertThat(glacierMetadata.userMetadata()).containsEntry("content", "log-data");
         
         // 원본은 여전히 STANDARD
         S3Metadata unchangedMetadata = s3Service.headObject(TEST_BUCKET, key).join();
-        assertThat(unchangedMetadata.getStorageClass()).isEqualTo("STANDARD");
+        assertThat(unchangedMetadata.storageClass()).isEqualTo("STANDARD");
     }
 }

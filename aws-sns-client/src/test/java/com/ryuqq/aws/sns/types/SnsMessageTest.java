@@ -314,7 +314,7 @@ class SnsMessageTest {
     @DisplayName("Should maintain builder immutability for optional fields")
     void shouldMaintainBuilderImmutabilityForOptionalFields() {
         // Given
-        SnsMessage.SnsMessageBuilder builder = SnsMessage.builder().body("Test");
+        SnsMessage.Builder builder = SnsMessage.builder().body("Test");
 
         // When
         SnsMessage message1 = builder.subject("Subject 1").build();

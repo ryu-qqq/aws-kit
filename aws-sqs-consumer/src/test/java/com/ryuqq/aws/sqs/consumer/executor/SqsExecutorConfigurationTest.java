@@ -112,7 +112,10 @@ class SqsExecutorConfigurationTest {
     static class TestSqsProperties {
         @Bean
         public SqsConsumerProperties sqsConsumerProperties() {
-            return new SqsConsumerProperties();
+            return new SqsConsumerProperties(
+                null, null, null, null, null, null, null, null, // defaults for basic props
+                null, null, null, null, null, null, null, null, null, null // defaults for remaining props
+            );
         }
     }
     

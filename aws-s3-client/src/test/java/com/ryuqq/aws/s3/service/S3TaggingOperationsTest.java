@@ -87,7 +87,7 @@ class S3TaggingOperationsTest {
         assertThat(capturedRequest.bucket()).isEqualTo(bucket);
         assertThat(capturedRequest.key()).isEqualTo(key);
         
-        Set<Tag> awsTags = capturedRequest.tagging().tagSet();
+        java.util.List<Tag> awsTags = capturedRequest.tagging().tagSet();
         assertThat(awsTags).hasSize(4);
         
         // AWS SDK Tag로 변환된 내용 검증
@@ -130,7 +130,7 @@ class S3TaggingOperationsTest {
         verify(s3AsyncClient).putObjectTagging(requestCaptor.capture());
         
         PutObjectTaggingRequest capturedRequest = requestCaptor.getValue();
-        Set<Tag> awsTags = capturedRequest.tagging().tagSet();
+        java.util.List<Tag> awsTags = capturedRequest.tagging().tagSet();
         
         Map<String, String> tagMap = new HashMap<>();
         awsTags.forEach(tag -> tagMap.put(tag.key(), tag.value()));
@@ -177,7 +177,7 @@ class S3TaggingOperationsTest {
         assertThat(retrievedTags.getTagKeys()).containsExactlyInAnyOrder(
             "Category", "Location", "Year", "Quality");
         
-        verify(s3AsyncClient).getObjectTagging(argThat(request -> 
+        verify(s3AsyncClient).getObjectTagging(argThat((GetObjectTaggingRequest request) ->
             request.bucket().equals(bucket) && request.key().equals(key)));
     }
 
@@ -202,7 +202,7 @@ class S3TaggingOperationsTest {
         // Then
         assertThat(retrievedTags).isNotNull();
         assertThat(retrievedTags.getTagCount()).isEqualTo(0);
-        assertThat(retrievedTags.getTags()).isEmpty();
+        assertThat(retrievedTags.tags()).isEmpty();
         assertThat(retrievedTags.getTagKeys()).isEmpty();
     }
 
@@ -223,7 +223,7 @@ class S3TaggingOperationsTest {
         // Then
         assertThat(result.join()).isNull(); // Void 반환
         
-        verify(s3AsyncClient).deleteObjectTagging(argThat(request -> 
+        verify(s3AsyncClient).deleteObjectTagging(argThat((DeleteObjectTaggingRequest request) ->
             request.bucket().equals(bucket) && request.key().equals(key)));
     }
 

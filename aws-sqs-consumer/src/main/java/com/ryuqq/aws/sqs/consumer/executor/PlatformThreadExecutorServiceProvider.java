@@ -1,7 +1,8 @@
 package com.ryuqq.aws.sqs.consumer.executor;
 
 import com.ryuqq.aws.sqs.consumer.properties.SqsConsumerProperties;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -42,15 +43,16 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @see VirtualThreadExecutorServiceProvider
  * @see ExecutorServiceProvider
  */
-@Slf4j
 public class PlatformThreadExecutorServiceProvider implements ExecutorServiceProvider {
-    
+
+    private static final Logger log = LoggerFactory.getLogger(PlatformThreadExecutorServiceProvider.class);
+
     private final SqsConsumerProperties properties;
-    private volatile ExecutorService executorService;
-    
+
     public PlatformThreadExecutorServiceProvider(SqsConsumerProperties properties) {
         this.properties = properties;
     }
+    private volatile ExecutorService executorService;
     
     /**
      * 메시지 처리용 Platform Thread ExecutorService 생성

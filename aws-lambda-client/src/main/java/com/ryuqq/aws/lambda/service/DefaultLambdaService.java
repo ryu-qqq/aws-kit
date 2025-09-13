@@ -6,8 +6,8 @@ import com.ryuqq.aws.lambda.types.LambdaBatchInvocationRequest;
 import com.ryuqq.aws.lambda.types.LambdaFunctionConfiguration;
 import com.ryuqq.aws.lambda.types.LambdaInvocationRequest;
 import com.ryuqq.aws.lambda.types.LambdaInvocationResponse;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import software.amazon.awssdk.awscore.exception.AwsServiceException;
 import software.amazon.awssdk.core.SdkBytes;
@@ -53,9 +53,10 @@ import java.util.stream.IntStream;
  * - 배치 처리 최적화
  * - 메모리 효율적인 페이로드 처리
  */
-@Slf4j
 @Service
 public class DefaultLambdaService implements LambdaService {
+
+    private static final Logger log = LoggerFactory.getLogger(DefaultLambdaService.class);
 
     // AWS Lambda 비동기 클라이언트
     // 내부적으로 HTTP/2와 연결 풀링을 사용하여 성능 최적화
@@ -82,12 +83,12 @@ public class DefaultLambdaService implements LambdaService {
         
         // 동시 실행 수 제어를 위한 세마포어 초기화
         // 설정된 maxConcurrentInvocations 값으로 허가증 개수 설정
-        this.concurrencyControl = new Semaphore(properties.getMaxConcurrentInvocations());
+        this.concurrencyControl = new Semaphore(properties.maxConcurrentInvocations());
         
         // 배치 처리용 스레드 풀 초기화
         // 최대 스레드 수는 동시 실행 수의 2배로 설정 (I/O 대기 고려)
         this.batchExecutor = Executors.newFixedThreadPool(
-            Math.max(properties.getMaxConcurrentInvocations() * 2, 10),
+            Math.max(properties.maxConcurrentInvocations() * 2, 10),
             r -> {
                 Thread t = new Thread(r, "lambda-batch-executor");
                 t.setDaemon(true); // 애플리케이션 종료 시 강제 종료되도록 설정
@@ -96,8 +97,8 @@ public class DefaultLambdaService implements LambdaService {
         );
         
         log.info("Lambda 서비스 초기화 완료 - 최대 동시 실행: {}, 배치 스레드 풀: {}", 
-                 properties.getMaxConcurrentInvocations(), 
-                 properties.getMaxConcurrentInvocations() * 2);
+                 properties.maxConcurrentInvocations(), 
+                 properties.maxConcurrentInvocations() * 2);
     }
 
     @Override
@@ -106,16 +107,16 @@ public class DefaultLambdaService implements LambdaService {
                 .thenApply(response -> {
                     // 기존 호환성을 위해 함수 에러가 있으면 예외 발생
                     if (response.hasFunctionError()) {
-                        throw new RuntimeException("Lambda function error: " + response.getPayload());
+                        throw new RuntimeException("Lambda function error: " + response.payload());
                     }
-                    return response.getPayload();
+                    return response.payload();
                 });
     }
 
     @Override
     public CompletableFuture<String> invokeAsync(String functionName, String payload) {
         return invokeWithConcurrencyControl(functionName, payload, null, InvocationType.EVENT, null)
-                .thenApply(response -> response.getRequestId());
+                .thenApply(response -> response.requestId());
     }
 
     @Override
@@ -148,9 +149,9 @@ public class DefaultLambdaService implements LambdaService {
                 .thenApply(response -> {
                     // 함수 에러가 있으면 예외 발생 (기존 호환성)
                     if (response.hasFunctionError()) {
-                        throw new RuntimeException("Lambda function error: " + response.getPayload());
+                        throw new RuntimeException("Lambda function error: " + response.payload());
                     }
-                    return response.getPayload();
+                    return response.payload();
                 })
                 .handle((result, throwable) -> {
                     // 성공한 경우 - 결과 반환
@@ -178,7 +179,7 @@ public class DefaultLambdaService implements LambdaService {
                     log.warn("Lambda invocation attempt {} failed, retrying: {}", attempt + 1, throwable.getMessage());
                     return invokeWithRetryInternal(functionName, payload, maxRetries, attempt + 1);
                 })
-                .thenCompose(future -> future);  // CompletableFuture의 중첩 제거
+                .thenCompose(result -> result);  // CompletableFuture의 중첩 제거
     }
 
     /**
@@ -272,15 +273,15 @@ public class DefaultLambdaService implements LambdaService {
     @Override
     public CompletableFuture<LambdaInvocationResponse> invokeWithResponse(LambdaInvocationRequest request) {
         // 상관관계 ID 자동 생성 (없는 경우)
-        String correlationId = generateCorrelationIdIfNeeded(request.getCorrelationId());
+        String correlationId = generateCorrelationIdIfNeeded(request.correlationId());
         
         log.debug("고급 Lambda 함수 호출 시작 [함수={}, 버전={}, 상관관계ID={}]", 
-                  request.getFunctionName(), request.getQualifier(), correlationId);
+                  request.functionName(), request.qualifier(), correlationId);
 
         return invokeWithConcurrencyControl(
-            request.getFunctionName(), 
-            request.getPayload(), 
-            request.getQualifier(),
+            request.functionName(), 
+            request.payload(), 
+            request.qualifier(),
             InvocationType.REQUEST_RESPONSE, 
             request
         );
@@ -289,11 +290,11 @@ public class DefaultLambdaService implements LambdaService {
     @Override
     public CompletableFuture<List<LambdaInvocationResponse>> invokeMultiple(String functionName, List<String> payloads) {
         // 동일 함수를 여러 페이로드로 호출하는 배치 요청 생성
-        LambdaBatchInvocationRequest.LambdaBatchInvocationRequestBuilder batchBuilder = 
+        LambdaBatchInvocationRequest.Builder batchBuilder =
             LambdaBatchInvocationRequest.builder()
                 .batchId("multiple-" + UUID.randomUUID().toString().substring(0, 8))
-                .maxConcurrency(properties.getMaxConcurrentInvocations())
-                .timeoutMs(properties.getDefaultBatchTimeoutMs());
+                .maxConcurrency(properties.maxConcurrentInvocations())
+                .timeoutMs(properties.defaultBatchTimeoutMs());
 
         // 각 페이로드에 대한 개별 요청 생성
         for (int i = 0; i < payloads.size(); i++) {
@@ -328,24 +329,24 @@ public class DefaultLambdaService implements LambdaService {
         AtomicInteger failureCount = new AtomicInteger(0);
         
         // 각 요청을 CompletableFuture로 변환
-        for (int i = 0; i < batchRequest.getRequests().size(); i++) {
-            LambdaInvocationRequest request = batchRequest.getRequests().get(i);
+        for (int i = 0; i < batchRequest.requests().size(); i++) {
+            LambdaInvocationRequest request = batchRequest.requests().get(i);
             final int index = i; // 람다에서 사용하기 위해 final 변수로 복사
             
             CompletableFuture<LambdaInvocationResponse> future = CompletableFuture.supplyAsync(() -> {
                 try {
                     // failFast 모드에서 이미 실패가 발생한 경우 즉시 취소
-                    if (batchRequest.isFailFast() && failureCount.get() > 0) {
+                    if (batchRequest.failFast() && failureCount.get() > 0) {
                         throw new LambdaFunctionException("배치 실패로 인한 조기 종료", 
-                                                          request.getFunctionName(), 
-                                                          request.getCorrelationId());
+                                                          request.functionName(), 
+                                                          request.correlationId());
                     }
                     
                     // 개별 Lambda 함수 호출
                     return invokeWithConcurrencyControl(
-                        request.getFunctionName(),
-                        request.getPayload(), 
-                        request.getQualifier(),
+                        request.functionName(),
+                        request.payload(), 
+                        request.qualifier(),
                         InvocationType.REQUEST_RESPONSE,
                         request
                     ).join(); // 동기적으로 대기
@@ -355,10 +356,10 @@ public class DefaultLambdaService implements LambdaService {
                     
                     // 실패한 경우도 LambdaInvocationResponse 형태로 반환
                     String errorMessage = e.getMessage();
-                    String correlationId = request.getCorrelationId();
+                    String correlationId = request.correlationId();
                     
                     log.error("배치 내 개별 호출 실패 [인덱스={}, 함수={}, 상관관계ID={}]: {}", 
-                              index, request.getFunctionName(), correlationId, errorMessage);
+                              index, request.functionName(), correlationId, errorMessage);
                     
                     return LambdaInvocationResponse.builder()
                         .statusCode(500)
@@ -383,8 +384,8 @@ public class DefaultLambdaService implements LambdaService {
         ScheduledExecutorService timeoutExecutor = Executors.newSingleThreadScheduledExecutor();
         timeoutExecutor.schedule(() -> {
             timeoutFuture.completeExceptionally(
-                new TimeoutException("배치 처리 타임아웃: " + batchRequest.getTimeoutMs() + "ms"));
-        }, batchRequest.getTimeoutMs(), TimeUnit.MILLISECONDS);
+                new TimeoutException("배치 처리 타임아웃: " + batchRequest.timeoutMs() + "ms"));
+        }, batchRequest.timeoutMs(), TimeUnit.MILLISECONDS);
 
         // allFutures 또는 타임아웃 중 먼저 완료되는 것을 대기
         return CompletableFuture.anyOf(allFutures, timeoutFuture)
@@ -401,13 +402,13 @@ public class DefaultLambdaService implements LambdaService {
                     .collect(Collectors.toList());
                 
                 // 결과 필터링 (집계 방식에 따라)
-                List<LambdaInvocationResponse> filteredResults = filterBatchResults(results, batchRequest.getAggregationMode());
+                List<LambdaInvocationResponse> filteredResults = filterBatchResults(results, batchRequest.aggregationMode());
                 
                 long endTime = System.currentTimeMillis();
                 long executionTime = endTime - startTime;
                 
                 log.info("배치 Lambda 호출 완료 [배치ID={}, 총요청={}, 성공={}, 실패={}, 실행시간={}ms]",
-                         batchRequest.getBatchId(), 
+                         batchRequest.batchId(), 
                          results.size(),
                          results.stream().mapToInt(r -> r.isSuccess() ? 1 : 0).sum(),
                          failureCount.get(),
@@ -496,7 +497,7 @@ public class DefaultLambdaService implements LambdaService {
                     
                 LambdaFunctionConfiguration config = convertToLambdaFunctionConfiguration(functionConfig);
                 log.info("Lambda 함수 코드 업데이트 완료: {} (새 SHA256: {})", 
-                         functionName, config.getCodeSha256());
+                         functionName, config.codeSha256());
                 return config;
             })
             .exceptionally(throwable -> {
@@ -520,7 +521,7 @@ public class DefaultLambdaService implements LambdaService {
                 .code(FunctionCode.builder()
                     .zipFile(SdkBytes.fromByteArray(zipFileBytes))
                     .build())
-                .timeout(properties.getTimeout().toSecondsPart())
+                .timeout(properties.timeout().toSecondsPart())
                 .memorySize(128) // 기본 메모리 크기
                 .build())
             .thenApply(response -> {
@@ -548,7 +549,7 @@ public class DefaultLambdaService implements LambdaService {
                     .build();
                     
                 LambdaFunctionConfiguration config = convertToLambdaFunctionConfiguration(functionConfig);
-                log.info("Lambda 함수 생성 완료: {} (ARN: {})", functionName, config.getFunctionArn());
+                log.info("Lambda 함수 생성 완료: {} (ARN: {})", functionName, config.functionArn());
                 return config;
             })
             .exceptionally(throwable -> {
@@ -598,7 +599,7 @@ public class DefaultLambdaService implements LambdaService {
         
         // 상관관계 ID 생성 또는 추출
         String correlationId = originalRequest != null ? 
-            generateCorrelationIdIfNeeded(originalRequest.getCorrelationId()) :
+            generateCorrelationIdIfNeeded(originalRequest.correlationId()) :
             generateCorrelationIdIfNeeded(null);
 
         return CompletableFuture.supplyAsync(() -> {
@@ -622,13 +623,13 @@ public class DefaultLambdaService implements LambdaService {
                     
                     if (originalRequest != null) {
                         // 로그 타입 설정
-                        if (originalRequest.getLogType() != null) {
-                            requestBuilder.logType(originalRequest.getLogType());
+                        if (originalRequest.logType() != null) {
+                            requestBuilder.logType(originalRequest.logType());
                         }
                         
                         // 클라이언트 컨텍스트 설정
-                        if (originalRequest.getClientContext() != null) {
-                            requestBuilder.clientContext(originalRequest.getClientContext());
+                        if (originalRequest.clientContext() != null) {
+                            requestBuilder.clientContext(originalRequest.clientContext());
                         }
                     }
 
@@ -653,7 +654,7 @@ public class DefaultLambdaService implements LambdaService {
                 Thread.currentThread().interrupt();
                 throw new LambdaFunctionException("Lambda 호출 중 인터럽트 발생", functionName, correlationId, e);
             } catch (Exception e) {
-                throw new LambdaFunctionException("Lambda 호출 중 오류 발생: " + e.getMessage(), 
+                throw new LambdaFunctionException("Lambda 호출 중 오류 발생: " + e.getMessage(),
                                                   functionName, correlationId, e);
             }
         }, batchExecutor);
@@ -667,7 +668,7 @@ public class DefaultLambdaService implements LambdaService {
             return existingId;
         }
         
-        if (properties.isAutoGenerateCorrelationId()) {
+        if (properties.autoGenerateCorrelationId()) {
             return "lambda-" + UUID.randomUUID().toString();
         }
         
@@ -751,36 +752,34 @@ public class DefaultLambdaService implements LambdaService {
      */
     private List<LambdaInvocationResponse> filterBatchResults(
             List<LambdaInvocationResponse> results, LambdaBatchInvocationRequest.AggregationMode mode) {
-        
-        switch (mode) {
-            case SUCCESS_ONLY:
-                return results.stream()
-                    .filter(LambdaInvocationResponse::isSuccess)
-                    .collect(Collectors.toList());
-                    
-            case FAILURE_ONLY:
-                return results.stream()
-                    .filter(response -> !response.isSuccess())
-                    .collect(Collectors.toList());
-                    
-            case SUMMARY:
+
+        // Java 21 Switch Expression 사용
+        return switch (mode) {
+            case SUCCESS_ONLY -> results.stream()
+                .filter(LambdaInvocationResponse::isSuccess)
+                .collect(Collectors.toList());
+
+            case FAILURE_ONLY -> results.stream()
+                .filter(response -> !response.isSuccess())
+                .collect(Collectors.toList());
+
+            case SUMMARY -> {
                 // 요약 모드: 첫 번째 결과만 반환하되 요약 정보로 교체
                 long successCount = results.stream().mapToLong(r -> r.isSuccess() ? 1 : 0).sum();
                 long failureCount = results.size() - successCount;
-                
+
                 LambdaInvocationResponse summary = LambdaInvocationResponse.builder()
-                    .payload(String.format("{\"summary\":{\"total\":%d,\"success\":%d,\"failure\":%d}}", 
+                    .payload(String.format("{\"summary\":{\"total\":%d,\"success\":%d,\"failure\":%d}}",
                              results.size(), successCount, failureCount))
                     .statusCode(200)
                     .requestId("batch-summary-" + System.currentTimeMillis())
                     .executionTimeMs(0L)
                     .build();
-                
-                return Collections.singletonList(summary);
-                
-            case ALL:
-            default:
-                return results;
-        }
+
+                yield Collections.singletonList(summary);
+            }
+
+            case ALL -> results;
+        };
     }
 }

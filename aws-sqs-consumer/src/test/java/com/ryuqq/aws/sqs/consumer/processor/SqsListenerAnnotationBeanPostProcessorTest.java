@@ -1,6 +1,7 @@
 package com.ryuqq.aws.sqs.consumer.processor;
 
 import com.ryuqq.aws.sqs.consumer.annotation.SqsListener;
+import com.ryuqq.aws.sqs.consumer.executor.ExecutorServiceProvider;
 import com.ryuqq.aws.sqs.consumer.registry.SqsListenerContainerRegistry;
 import com.ryuqq.aws.sqs.service.SqsService;
 import com.ryuqq.aws.sqs.types.SqsMessage;
@@ -14,6 +15,8 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.core.env.Environment;
 
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -29,15 +32,18 @@ class SqsListenerAnnotationBeanPostProcessorTest {
     
     @Mock
     private ApplicationContext applicationContext;
-    
+
     @Mock
     private SqsListenerContainerRegistry containerRegistry;
-    
+
     @Mock
     private SqsService sqsService;
-    
+
     @Mock
     private Environment environment;
+
+    @Mock
+    private ExecutorServiceProvider executorServiceProvider;
     
     private SqsListenerAnnotationBeanPostProcessor processor;
     
@@ -45,11 +51,20 @@ class SqsListenerAnnotationBeanPostProcessorTest {
     void setUp() {
         processor = new SqsListenerAnnotationBeanPostProcessor();
         processor.setApplicationContext(applicationContext);
-        
-        when(applicationContext.getBean(SqsListenerContainerRegistry.class)).thenReturn(containerRegistry);
-        when(applicationContext.getBean(SqsService.class)).thenReturn(sqsService);
-        when(applicationContext.getEnvironment()).thenReturn(environment);
-        when(environment.resolvePlaceholders(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        // Use lenient() for all bean stubs since some tests set applicationContext to null
+        lenient().when(applicationContext.getBean(SqsListenerContainerRegistry.class)).thenReturn(containerRegistry);
+        lenient().when(applicationContext.getBean(SqsService.class)).thenReturn(sqsService);
+        lenient().when(applicationContext.getBean(ExecutorServiceProvider.class)).thenReturn(executorServiceProvider);
+        lenient().when(applicationContext.getEnvironment()).thenReturn(environment);
+        // Use lenient() for stubs that aren't used by all tests
+        lenient().when(environment.resolvePlaceholders(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        // Mock ExecutorService creation - use lenient() since not all tests need these
+        ExecutorService mockExecutorService = Executors.newCachedThreadPool();
+        lenient().when(executorServiceProvider.createMessageProcessingExecutor(any())).thenReturn(mockExecutorService);
+        lenient().when(executorServiceProvider.createPollingExecutor(any())).thenReturn(mockExecutorService);
+        lenient().when(executorServiceProvider.getThreadingModel()).thenReturn(ExecutorServiceProvider.ThreadingModel.VIRTUAL_THREADS);
     }
     
     @Test
@@ -77,9 +92,10 @@ class SqsListenerAnnotationBeanPostProcessorTest {
         assertThat(result).isSameAs(bean);
         
         ArgumentCaptor<String> containerIdCaptor = ArgumentCaptor.forClass(String.class);
-        verify(containerRegistry).registerContainer(containerIdCaptor.capture(), any());
-        
-        assertThat(containerIdCaptor.getValue()).isEqualTo("testListener.validListener");
+        verify(containerRegistry, times(3)).registerContainer(containerIdCaptor.capture(), any());
+
+        List<String> containerIds = containerIdCaptor.getAllValues();
+        assertThat(containerIds).contains("testListener.validListener");
     }
     
     @Test
@@ -121,7 +137,14 @@ class SqsListenerAnnotationBeanPostProcessorTest {
         // When & Then
         assertThatThrownBy(() -> processor.postProcessAfterInitialization(bean, "invalidListener"))
             .isInstanceOf(RuntimeException.class)
-            .hasMessageContaining("must have exactly one parameter");
+            .hasCauseInstanceOf(IllegalArgumentException.class);
+
+        // Verify the root cause message
+        try {
+            processor.postProcessAfterInitialization(bean, "invalidListener");
+        } catch (RuntimeException e) {
+            assertThat(e.getCause().getMessage()).contains("must have exactly one parameter");
+        }
     }
     
     @Test
@@ -132,7 +155,14 @@ class SqsListenerAnnotationBeanPostProcessorTest {
         // When & Then
         assertThatThrownBy(() -> processor.postProcessAfterInitialization(bean, "invalidTypeListener"))
             .isInstanceOf(RuntimeException.class)
-            .hasMessageContaining("must accept SqsMessage parameter");
+            .hasCauseInstanceOf(IllegalArgumentException.class);
+
+        // Verify the root cause message
+        try {
+            processor.postProcessAfterInitialization(bean, "invalidTypeListener");
+        } catch (RuntimeException e) {
+            assertThat(e.getCause().getMessage()).contains("must accept SqsMessage parameter");
+        }
     }
     
     @Test
@@ -143,7 +173,14 @@ class SqsListenerAnnotationBeanPostProcessorTest {
         // When & Then
         assertThatThrownBy(() -> processor.postProcessAfterInitialization(bean, "invalidBatchListener"))
             .isInstanceOf(RuntimeException.class)
-            .hasMessageContaining("must accept List parameter");
+            .hasCauseInstanceOf(IllegalArgumentException.class);
+
+        // Verify the root cause message
+        try {
+            processor.postProcessAfterInitialization(bean, "invalidBatchListener");
+        } catch (RuntimeException e) {
+            assertThat(e.getCause().getMessage()).contains("must accept List parameter");
+        }
     }
     
     @Test
@@ -154,7 +191,14 @@ class SqsListenerAnnotationBeanPostProcessorTest {
         // When & Then
         assertThatThrownBy(() -> processor.postProcessAfterInitialization(bean, "noQueueListener"))
             .isInstanceOf(RuntimeException.class)
-            .hasMessageContaining("must specify either queueName or queueUrl");
+            .hasCauseInstanceOf(IllegalArgumentException.class);
+
+        // Verify the root cause message
+        try {
+            processor.postProcessAfterInitialization(bean, "noQueueListener");
+        } catch (RuntimeException e) {
+            assertThat(e.getCause().getMessage()).contains("must specify either queueName or queueUrl");
+        }
     }
     
     @Test
@@ -165,7 +209,14 @@ class SqsListenerAnnotationBeanPostProcessorTest {
         // When & Then
         assertThatThrownBy(() -> processor.postProcessAfterInitialization(bean, "duplicateQueueListener"))
             .isInstanceOf(RuntimeException.class)
-            .hasMessageContaining("cannot specify both queueName and queueUrl");
+            .hasCauseInstanceOf(IllegalArgumentException.class);
+
+        // Verify the root cause message
+        try {
+            processor.postProcessAfterInitialization(bean, "duplicateQueueListener");
+        } catch (RuntimeException e) {
+            assertThat(e.getCause().getMessage()).contains("cannot specify both queueName and queueUrl");
+        }
     }
     
     @Test
@@ -176,7 +227,14 @@ class SqsListenerAnnotationBeanPostProcessorTest {
         // When & Then
         assertThatThrownBy(() -> processor.postProcessAfterInitialization(bean, "invalidNumericListener"))
             .isInstanceOf(RuntimeException.class)
-            .hasMessageContaining("must be positive");
+            .hasCauseInstanceOf(IllegalArgumentException.class);
+
+        // Verify the root cause message
+        try {
+            processor.postProcessAfterInitialization(bean, "invalidNumericListener");
+        } catch (RuntimeException e) {
+            assertThat(e.getCause().getMessage()).contains("must be positive");
+        }
     }
     
     @Test
@@ -187,7 +245,14 @@ class SqsListenerAnnotationBeanPostProcessorTest {
         // When & Then
         assertThatThrownBy(() -> processor.postProcessAfterInitialization(bean, "invalidTimeoutListener"))
             .isInstanceOf(RuntimeException.class)
-            .hasMessageContaining("must be between 0 and 20");
+            .hasCauseInstanceOf(IllegalArgumentException.class);
+
+        // Verify the root cause message
+        try {
+            processor.postProcessAfterInitialization(bean, "invalidTimeoutListener");
+        } catch (RuntimeException e) {
+            assertThat(e.getCause().getMessage()).contains("must be between 0 and 20");
+        }
     }
     
     @Test

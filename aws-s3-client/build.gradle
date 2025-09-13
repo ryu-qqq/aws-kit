@@ -10,9 +10,13 @@ dependencies {
     compileOnly 'org.springframework.boot:spring-boot-starter'
     compileOnly 'org.springframework.boot:spring-boot-autoconfigure'
     
+    // Micrometer for metrics (optional dependency)
+    compileOnly 'io.micrometer:micrometer-core'
+    
     // Testing with LocalStack
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.testcontainers:testcontainers'
     testImplementation 'org.testcontainers:junit-jupiter'
     testImplementation 'org.testcontainers:localstack'
+    testImplementation 'io.micrometer:micrometer-core'
 }

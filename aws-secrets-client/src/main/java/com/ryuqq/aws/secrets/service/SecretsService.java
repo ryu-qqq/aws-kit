@@ -5,7 +5,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.benmanes.caffeine.cache.AsyncCache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.ryuqq.aws.secrets.cache.SecretsCacheManager;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.services.secretsmanager.SecretsManagerAsyncClient;
 import software.amazon.awssdk.services.secretsmanager.model.*;
 
@@ -16,8 +17,9 @@ import java.util.concurrent.CompletableFuture;
 /**
  * Service for AWS Secrets Manager with caching support
  */
-@Slf4j
 public class SecretsService {
+
+    private static final Logger log = LoggerFactory.getLogger(SecretsService.class);
     
     private final SecretsManagerAsyncClient secretsManagerClient;
     private final SecretsCacheManager cacheManager;
@@ -265,10 +267,12 @@ public class SecretsService {
      * Custom exception for Secrets operations
      */
     public static class SecretsException extends RuntimeException {
+        private static final long serialVersionUID = 1L;
+
         public SecretsException(String message) {
             super(message);
         }
-        
+
         public SecretsException(String message, Throwable cause) {
             super(message, cause);
         }

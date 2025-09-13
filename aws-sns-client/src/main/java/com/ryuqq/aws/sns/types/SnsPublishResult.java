@@ -1,24 +1,31 @@
 package com.ryuqq.aws.sns.types;
 
-import lombok.Builder;
-import lombok.Getter;
-import lombok.ToString;
-
 /**
- * Result of SNS publish operation
+ * Result of SNS publish operation as an immutable record
  */
-@Getter
-@Builder
-@ToString
-public class SnsPublishResult {
-    
+public record SnsPublishResult(
     /**
      * Unique identifier assigned to the published message
      */
-    private final String messageId;
-    
+    String messageId,
+
     /**
      * Sequence number for FIFO topics
      */
-    private final String sequenceNumber;
+    String sequenceNumber
+) {
+
+    /**
+     * Create result with only message ID
+     */
+    public static SnsPublishResult of(String messageId) {
+        return new SnsPublishResult(messageId, null);
+    }
+
+    /**
+     * Create result with message ID and sequence number
+     */
+    public static SnsPublishResult of(String messageId, String sequenceNumber) {
+        return new SnsPublishResult(messageId, sequenceNumber);
+    }
 }

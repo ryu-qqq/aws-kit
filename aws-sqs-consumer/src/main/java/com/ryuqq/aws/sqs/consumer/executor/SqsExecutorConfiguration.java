@@ -1,7 +1,8 @@
 package com.ryuqq.aws.sqs.consumer.executor;
 
 import com.ryuqq.aws.sqs.consumer.properties.SqsConsumerProperties;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -30,11 +31,12 @@ import org.springframework.context.annotation.Configuration;
  * 
  * @since 1.0.0
  */
-@Slf4j
 @Configuration
 @ConditionalOnProperty(prefix = "aws.sqs.consumer", name = "enabled", havingValue = "true", matchIfMissing = true)
 public class SqsExecutorConfiguration implements ApplicationContextAware, DisposableBean {
-    
+
+    private static final Logger log = LoggerFactory.getLogger(SqsExecutorConfiguration.class);
+
     private ApplicationContext applicationContext;
     private ExecutorServiceProvider activeProvider;
     
@@ -52,8 +54,8 @@ public class SqsExecutorConfiguration implements ApplicationContextAware, Dispos
     @Bean
     @ConditionalOnMissingBean
     public ExecutorServiceProvider executorServiceProvider(SqsConsumerProperties properties) {
-        SqsConsumerProperties.ExecutorType configuredType = properties.getExecutor().getType();
-        boolean preferVirtualThreads = properties.getExecutor().isPreferVirtualThreads();
+        SqsConsumerProperties.ExecutorType configuredType = properties.getExecutor().type();
+        boolean preferVirtualThreads = properties.getExecutor().preferVirtualThreads();
         
         log.info("Configuring SQS executor with type: {}, preferVirtualThreads: {}", 
                 configuredType, preferVirtualThreads);
@@ -168,7 +170,7 @@ public class SqsExecutorConfiguration implements ApplicationContextAware, Dispos
      * Creates CustomExecutorServiceProvider using user-provided bean.
      */
     private ExecutorServiceProvider createCustomProvider(SqsConsumerProperties properties) {
-        String customBeanName = properties.getExecutor().getCustomProviderBeanName();
+        String customBeanName = properties.getExecutor().customProviderBeanName();
         
         if (customBeanName == null || customBeanName.trim().isEmpty()) {
             // Try to find any ExecutorServiceProvider bean

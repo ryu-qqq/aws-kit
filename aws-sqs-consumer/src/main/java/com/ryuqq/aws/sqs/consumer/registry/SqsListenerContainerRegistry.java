@@ -1,7 +1,8 @@
 package com.ryuqq.aws.sqs.consumer.registry;
 
 import com.ryuqq.aws.sqs.consumer.container.SqsListenerContainer;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.SmartLifecycle;
 import org.springframework.stereotype.Component;
 
@@ -20,10 +21,11 @@ import java.util.concurrent.atomic.AtomicReference;
  * CONCURRENCY FIX: Replaced unsafe parallelStream operations with thread-safe
  * sequential processing and proper synchronization mechanisms.
  */
-@Slf4j
 @Component
 public class SqsListenerContainerRegistry implements SmartLifecycle {
-    
+
+    private static final Logger log = LoggerFactory.getLogger(SqsListenerContainerRegistry.class);
+
     private final ConcurrentMap<String, SqsListenerContainer> containers = new ConcurrentHashMap<>();
     private final AtomicReference<RegistryState> state = new AtomicReference<>(RegistryState.STOPPED);
     

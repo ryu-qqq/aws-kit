@@ -5,8 +5,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ryuqq.aws.sqs.consumer.component.DeadLetterQueueHandler;
 import com.ryuqq.aws.sqs.service.SqsService;
 import com.ryuqq.aws.sqs.types.SqsMessage;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 
@@ -18,14 +18,19 @@ import java.util.Map;
  * Default implementation of DeadLetterQueueHandler.
  * Manages failed messages and sends them to configured dead letter queues.
  */
-@Slf4j
 @Component
-@RequiredArgsConstructor
 public class DefaultDeadLetterQueueHandler implements DeadLetterQueueHandler {
-    
+
+    private static final Logger log = LoggerFactory.getLogger(DefaultDeadLetterQueueHandler.class);
+
     private final SqsService sqsService;
     private final Environment environment;
     private final ObjectMapper objectMapper = new ObjectMapper();
+
+    public DefaultDeadLetterQueueHandler(SqsService sqsService, Environment environment) {
+        this.sqsService = sqsService;
+        this.environment = environment;
+    }
     
     @Override
     public boolean sendToDeadLetterQueue(SqsMessage originalMessage, Exception exception, DlqConfig config) {

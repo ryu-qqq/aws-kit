@@ -78,6 +78,7 @@ dependencies {
     implementation 'com.fasterxml.jackson.core:jackson-databind'
     
     // Test - Additional dependencies
+    testImplementation 'software.amazon.awssdk:sqs'  // SQS dependency for SNS-SQS integration tests
     testImplementation 'org.awaitility:awaitility'
     testImplementation 'org.testcontainers:testcontainers'
     testImplementation 'org.testcontainers:localstack'

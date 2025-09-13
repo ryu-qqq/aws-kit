@@ -1,7 +1,6 @@
 package com.ryuqq.aws.sqs.consumer.component.impl;
 
 import com.ryuqq.aws.sqs.consumer.component.MetricsCollector;
-import lombok.Data;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
@@ -369,43 +368,43 @@ public class InMemoryMetricsCollector implements MetricsCollector {
      * 불변 메트릭 구현 클래스
      * 
      * 외부에 노출되는 메트릭 데이터를 담는 불변 객체입니다.
-     * Lombok의 @Data 어노테이션을 사용하여 getter, equals, hashCode, toString 메서드를 자동 생성합니다.
+     * 외부 노출용 불변 메트릭 데이터를 담는 record입니다.
      * 데이터 무결성을 보장하기 위해 모든 필드는 final로 선언됩니다.
      */
-    @Data
-    private static class ImmutableContainerMetrics implements ContainerMetrics {
-        private final String containerId;
-        private final long processedCount;
-        private final long failedCount;
-        private final long totalRetryAttempts;
-        private final long dlqSuccessCount;
-        private final long dlqFailureCount;
-        private final double averageProcessingTimeMs;
-        private final long maxProcessingTimeMs;
-        private final long minProcessingTimeMs;
-        private final Instant lastProcessedTime;
-        private final Instant lastFailureTime;
-        private final String currentState;
-        private final long stateChanges;
-        
+    private record ImmutableContainerMetrics(
+            String containerId,
+            long processedCount,
+            long failedCount,
+            long totalRetryAttempts,
+            long dlqSuccessCount,
+            long dlqFailureCount,
+            double averageProcessingTimeMs,
+            long maxProcessingTimeMs,
+            long minProcessingTimeMs,
+            Instant lastProcessedTime,
+            Instant lastFailureTime,
+            String currentState,
+            long stateChanges
+    ) implements ContainerMetrics {
+
         /**
          * 평균 처리 시간 반환 (롱 타입 변환)
-         * 
+         *
          * 내부에서는 double로 계산되지만, 인터페이스 호환성을 위해 long으로 반환합니다.
-         * 
+         *
          * @return 평균 처리 시간(밀리초, 소수점 절사)
          */
         @Override
         public long getAverageProcessingTime() {
             return (long) averageProcessingTimeMs;
         }
-        
+
         /**
          * 마지막 활동 시간 반환
-         * 
+         *
          * 마지막 성공 처리 시간과 마지막 실패 시간 중 더 최근의 시간을 반환합니다.
          * 컨테이너의 활동 상태와 마지막 동작 시점을 파악하는 데 사용됩니다.
-         * 
+         *
          * @return 마지막 활동 시각 (성공 또는 실패 중 최근)
          */
         @Override
@@ -415,25 +414,65 @@ public class InMemoryMetricsCollector implements MetricsCollector {
             }
             return lastProcessedTime != null ? lastProcessedTime : lastFailureTime;
         }
-        
+
         /**
          * 상태 변경 횟수 반환
-         * 
+         *
          * @return 컨테이너 생성 이후 발생한 상태 전환 총 횟수
          */
         @Override
         public long getStateChanges() {
             return stateChanges;
         }
-        
+
         /**
          * 최대 처리 시간 반환
-         * 
+         *
          * @return 지금까지 처리된 메시지 중 가장 오래 걸린 처리 시간(밀리초)
          */
         @Override
         public long getMaxProcessingTime() {
             return maxProcessingTimeMs;
+        }
+
+        /**
+         * 처리 실패한 메시지 총 개수 반환
+         *
+         * @return 실패한 메시지 수
+         */
+        @Override
+        public long getFailedCount() {
+            return failedCount;
+        }
+
+        /**
+         * 성공적으로 처리된 메시지 총 개수 반환
+         *
+         * @return 처리된 메시지 수
+         */
+        @Override
+        public long getProcessedCount() {
+            return processedCount;
+        }
+
+        /**
+         * 컨테이너 고유 식별자 반환
+         *
+         * @return 컨테이너 ID
+         */
+        @Override
+        public String getContainerId() {
+            return containerId;
+        }
+
+        /**
+         * 현재 컨테이너 상태 반환
+         *
+         * @return 현재 컨테이너의 상태
+         */
+        @Override
+        public String getCurrentState() {
+            return currentState;
         }
     }
 }

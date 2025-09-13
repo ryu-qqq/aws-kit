@@ -68,10 +68,13 @@ class LambdaFunctionManagementTest {
     @BeforeEach
     void setUp() {
         // 테스트용 Lambda 설정 프로퍼티 초기화
-        properties = new LambdaProperties();
-        properties.setTimeout(Duration.ofMinutes(15));
-        properties.setMaxRetries(3);
-        properties.setMaxConcurrentInvocations(10);
+        properties = new LambdaProperties(
+                Duration.ofMinutes(15),  // timeout
+                10,                      // maxConcurrentInvocations
+                900_000L,               // defaultBatchTimeoutMs
+                "NONE",                 // defaultRetryPolicy
+                true                    // autoGenerateCorrelationId
+        );
         
         lambdaService = new DefaultLambdaService(lambdaClient, properties);
     }
@@ -281,9 +284,9 @@ class LambdaFunctionManagementTest {
 
             // VPC 설정 검증
             assertNotNull(config.getVpcConfig());
-            assertEquals("vpc-12345", config.getVpcConfig().getVpcId());
-            assertEquals(2, config.getVpcConfig().getSubnetIds().size());
-            assertEquals(2, config.getVpcConfig().getSecurityGroupIds().size());
+            assertEquals("vpc-12345", config.getVpcConfig().vpcId());
+            assertEquals(2, config.getVpcConfig().subnetIds().size());
+            assertEquals(2, config.getVpcConfig().securityGroupIds().size());
 
             // 기타 설정 검증
             assertEquals("arn:aws:sqs:us-east-1:123456789012:dlq", config.getDeadLetterConfig());
@@ -295,7 +298,7 @@ class LambdaFunctionManagementTest {
             assertNotNull(config.getLayers());
             assertEquals(1, config.getLayers().size());
             assertEquals("arn:aws:lambda:us-east-1:123456789012:layer:my-layer:1", 
-                        config.getLayers().get(0).getArn());
+                        config.getLayers().get(0).arn());
 
             // 클라이언트 호출 검증
             verify(lambdaClient).getFunction(argThat((GetFunctionRequest request) ->

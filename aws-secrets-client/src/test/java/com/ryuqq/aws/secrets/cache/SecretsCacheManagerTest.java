@@ -213,11 +213,11 @@ class SecretsCacheManagerTest {
         // Then
         SecretsCacheManager.CacheStats stats = enabledCacheManager.getStats();
         
-        assertThat(stats.isEnabled()).isTrue();
-        assertThat(stats.getHitCount()).isEqualTo(1);
-        assertThat(stats.getMissCount()).isEqualTo(2);
-        assertThat(stats.getLoadSuccessCount()).isEqualTo(2);
-        assertThat(stats.getSize()).isEqualTo(2);
+        assertThat(stats.enabled()).isTrue();
+        assertThat(stats.hitCount()).isEqualTo(1);
+        assertThat(stats.missCount()).isEqualTo(2);
+        assertThat(stats.loadSuccessCount()).isEqualTo(2);
+        assertThat(stats.size()).isEqualTo(2);
         assertThat(stats.hitRate()).isCloseTo(0.33, offset(0.01));
         assertThat(stats.missRate()).isCloseTo(0.67, offset(0.01));
     }
@@ -229,9 +229,9 @@ class SecretsCacheManagerTest {
         SecretsCacheManager.CacheStats stats = disabledCacheManager.getStats();
 
         // Then
-        assertThat(stats.isEnabled()).isFalse();
-        assertThat(stats.getHitCount()).isEqualTo(0);
-        assertThat(stats.getMissCount()).isEqualTo(0);
+        assertThat(stats.enabled()).isFalse();
+        assertThat(stats.hitCount()).isEqualTo(0);
+        assertThat(stats.missCount()).isEqualTo(0);
         assertThat(stats.hitRate()).isEqualTo(0.0);
         assertThat(stats.missRate()).isEqualTo(0.0);
     }
@@ -271,8 +271,8 @@ class SecretsCacheManagerTest {
         assertThat(loaderCallCount.get()).isEqualTo(1);
         
         SecretsCacheManager.CacheStats stats = enabledCacheManager.getStats();
-        assertThat(stats.getHitCount()).isEqualTo(threadCount * operationsPerThread - 1);
-        assertThat(stats.getMissCount()).isEqualTo(1);
+        assertThat(stats.hitCount()).isEqualTo(threadCount * operationsPerThread - 1);
+        assertThat(stats.missCount()).isEqualTo(1);
         
         executor.shutdown();
         assertThat(executor.awaitTermination(5, TimeUnit.SECONDS)).isTrue();
@@ -294,7 +294,7 @@ class SecretsCacheManagerTest {
         // Give some time for eviction to process
         await().atMost(Duration.ofSeconds(1)).untilAsserted(() -> {
             SecretsCacheManager.CacheStats stats = smallCache.getStats();
-            assertThat(stats.getSize()).isLessThanOrEqualTo(2);
+            assertThat(stats.size()).isLessThanOrEqualTo(2);
         });
     }
 
@@ -312,8 +312,8 @@ class SecretsCacheManagerTest {
 
         // Verify failure is recorded in stats
         SecretsCacheManager.CacheStats stats = enabledCacheManager.getStats();
-        assertThat(stats.getLoadFailureCount()).isEqualTo(1);
-        assertThat(stats.getLoadSuccessCount()).isEqualTo(0);
+        assertThat(stats.loadFailureCount()).isEqualTo(1);
+        assertThat(stats.loadSuccessCount()).isEqualTo(0);
     }
 
     @Test
@@ -332,22 +332,18 @@ class SecretsCacheManagerTest {
     @DisplayName("Should calculate hit and miss rates correctly")
     void shouldCalculateHitAndMissRatesCorrectly() {
         // Given - Empty cache stats
-        SecretsCacheManager.CacheStats emptyStats = SecretsCacheManager.CacheStats.builder()
-                .hitCount(0)
-                .missCount(0)
-                .enabled(true)
-                .build();
+        SecretsCacheManager.CacheStats emptyStats = new SecretsCacheManager.CacheStats(
+                0, 0, 0, 0, 0, 0, 0, true
+        );
 
         // When & Then - Empty stats should return 0 rates
         assertThat(emptyStats.hitRate()).isEqualTo(0.0);
         assertThat(emptyStats.missRate()).isEqualTo(0.0);
 
         // Given - Stats with hits and misses
-        SecretsCacheManager.CacheStats activeStats = SecretsCacheManager.CacheStats.builder()
-                .hitCount(7)
-                .missCount(3)
-                .enabled(true)
-                .build();
+        SecretsCacheManager.CacheStats activeStats = new SecretsCacheManager.CacheStats(
+                7, 3, 0, 0, 0, 0, 0, true
+        );
 
         // When & Then - Should calculate rates correctly
         assertThat(activeStats.hitRate()).isCloseTo(0.7, offset(0.01));
@@ -390,7 +386,7 @@ class SecretsCacheManagerTest {
         assertThat(result1.join()).isNotEqualTo(result2.join());
         
         // And independent stats
-        assertThat(cache1.getStats().getMissCount()).isEqualTo(1);
-        assertThat(cache2.getStats().getMissCount()).isEqualTo(1);
+        assertThat(cache1.getStats().missCount()).isEqualTo(1);
+        assertThat(cache2.getStats().missCount()).isEqualTo(1);
     }
 }

@@ -1,6 +1,7 @@
 package com.ryuqq.aws.sqs.consumer.executor;
 
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.ExecutorService;
 import java.util.function.Function;
@@ -22,9 +23,10 @@ import java.util.function.Function;
  * 
  * @since 1.0.0
  */
-@Slf4j
 public class CustomExecutorServiceProvider implements ExecutorServiceProvider {
-    
+
+    private static final Logger log = LoggerFactory.getLogger(CustomExecutorServiceProvider.class);
+
     private final Function<String, ExecutorService> messageProcessingExecutorFactory;
     private final Function<String, ExecutorService> pollingExecutorFactory;
     private final boolean shouldManageLifecycle;

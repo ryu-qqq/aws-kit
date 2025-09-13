@@ -1,7 +1,5 @@
 package com.ryuqq.aws.lambda.types;
 
-import lombok.Builder;
-import lombok.Data;
 import software.amazon.awssdk.services.lambda.model.LogType;
 
 /**
@@ -39,9 +37,7 @@ import software.amazon.awssdk.services.lambda.model.LogType;
  * }
  * </pre>
  */
-@Data
-@Builder
-public class LambdaInvocationRequest {
+public record LambdaInvocationRequest(
     
     /**
      * Lambda 함수 이름, ARN, 또는 부분 ARN
@@ -53,7 +49,7 @@ public class LambdaInvocationRequest {
      * 
      * 필수 필드입니다.
      */
-    private final String functionName;
+    String functionName,
     
     /**
      * 함수의 특정 버전 또는 별칭을 지정
@@ -70,7 +66,7 @@ public class LambdaInvocationRequest {
      * - 스테이징: "STAGING" 별칭 사용
      * - 테스트: 특정 버전 번호 사용
      */
-    private final String qualifier;
+    String qualifier,
     
     /**
      * Lambda 함수에 전달할 JSON 페이로드
@@ -86,7 +82,7 @@ public class LambdaInvocationRequest {
      * - 간단한 데이터: "{\"name\":\"John\",\"age\":30}"
      * - 복잡한 구조: "{\"user\":{\"id\":123},\"action\":\"update\"}"
      */
-    private final String payload;
+    String payload,
     
     /**
      * 모바일 SDK를 위한 클라이언트 컨텍스트 (Base64 인코딩)
@@ -102,7 +98,7 @@ public class LambdaInvocationRequest {
      * JSON 형태로 작성한 후 Base64로 인코딩하여 전달:
      * "{\"client\":{\"appTitle\":\"MyMobileApp\",\"appVersionCode\":\"1.0\"}}"
      */
-    private final String clientContext;
+    String clientContext,
     
     /**
      * 응답에 포함할 로그 타입 설정
@@ -123,8 +119,7 @@ public class LambdaInvocationRequest {
      * - Lambda 런타임 로그
      * - 에러 스택 트레이스
      */
-    @Builder.Default
-    private final LogType logType = LogType.NONE;
+    LogType logType,
     
     /**
      * 실시간 로그 스트리밍 활성화 여부
@@ -143,8 +138,7 @@ public class LambdaInvocationRequest {
      * - logType이 LogType.TAIL일 때만 의미 있음
      * - 비동기 호출에서는 효과 없음
      */
-    @Builder.Default
-    private final boolean tail = false;
+    boolean tail,
     
     /**
      * 요청 추적을 위한 상관관계 ID
@@ -164,7 +158,87 @@ public class LambdaInvocationRequest {
      * 
      * 로깅 예시:
      * log.info("Processing Lambda request [correlationId={}] for function [{}]", 
-     *          request.getCorrelationId(), request.getFunctionName());
+     *          request.correlationId(), request.functionName());
      */
-    private final String correlationId;
+    String correlationId
+) {
+
+    /**
+     * Builder class with default values and validation
+     */
+    public static final class Builder {
+        private String functionName;
+        private String qualifier;
+        private String payload;
+        private String clientContext;
+        private LogType logType = LogType.NONE;
+        private boolean tail = false;
+        private String correlationId;
+
+        private Builder() {}
+
+        public Builder functionName(String functionName) {
+            this.functionName = functionName;
+            return this;
+        }
+
+        public Builder qualifier(String qualifier) {
+            this.qualifier = qualifier;
+            return this;
+        }
+
+        public Builder payload(String payload) {
+            this.payload = payload;
+            return this;
+        }
+
+        public Builder clientContext(String clientContext) {
+            this.clientContext = clientContext;
+            return this;
+        }
+
+        public Builder logType(LogType logType) {
+            this.logType = logType != null ? logType : LogType.NONE;
+            return this;
+        }
+
+        public Builder tail(boolean tail) {
+            this.tail = tail;
+            return this;
+        }
+
+        public Builder correlationId(String correlationId) {
+            this.correlationId = correlationId;
+            return this;
+        }
+
+        public LambdaInvocationRequest build() {
+            if (functionName == null || functionName.trim().isEmpty()) {
+                throw new IllegalArgumentException("Function name is required");
+            }
+            return new LambdaInvocationRequest(functionName, qualifier, payload, clientContext,
+                                               logType, tail, correlationId);
+        }
+    }
+
+    /**
+     * Creates a new builder instance
+     * @return new Builder instance
+     */
+    public static Builder builder() {
+        return new Builder();
+    }
+
+    /**
+     * Creates a simple request with just function name and payload
+     * @param functionName the Lambda function name
+     * @param payload the JSON payload
+     * @return LambdaInvocationRequest instance
+     */
+    public static LambdaInvocationRequest of(String functionName, String payload) {
+        return builder()
+            .functionName(functionName)
+            .payload(payload)
+            .build();
+    }
 }

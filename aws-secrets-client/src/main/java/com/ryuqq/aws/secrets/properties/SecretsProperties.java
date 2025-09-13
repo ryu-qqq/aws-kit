@@ -1,6 +1,5 @@
 package com.ryuqq.aws.secrets.properties;
 
-import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 import java.time.Duration;
@@ -8,129 +7,153 @@ import java.time.Duration;
 /**
  * Configuration properties for Secrets Manager and Parameter Store
  */
-@Data
 @ConfigurationProperties(prefix = "aws.secrets")
-public class SecretsProperties {
-    
+public record SecretsProperties(
     /**
      * AWS region for Secrets Manager
      */
-    private String region;
+    String region,
     
     /**
      * Secrets Manager endpoint override (for LocalStack)
      */
-    private String secretsManagerEndpoint;
+    String secretsManagerEndpoint,
     
     /**
      * SSM (Parameter Store) endpoint override
      */
-    private String ssmEndpoint;
+    String ssmEndpoint,
     
     /**
      * Cache configuration
      */
-    private CacheConfig cache = new CacheConfig();
+    CacheConfig cache,
     
     /**
      * Connection configuration
      */
-    private ConnectionConfig connectionConfig = new ConnectionConfig();
+    ConnectionConfig connectionConfig,
     
     /**
      * Retry configuration
      */
-    private RetryConfig retryConfig = new RetryConfig();
+    RetryConfig retryConfig,
     
     /**
      * Parameter Store specific configuration
      */
-    private ParameterStoreConfig parameterStore = new ParameterStoreConfig();
+    ParameterStoreConfig parameterStore
+) {
     
-    @Data
-    public static class CacheConfig {
+    public SecretsProperties {
+        cache = cache != null ? cache : new CacheConfig(true, Duration.ofMinutes(5), 1000L, true);
+        connectionConfig = connectionConfig != null ? connectionConfig : new ConnectionConfig(50, Duration.ofSeconds(10), Duration.ofSeconds(30), Duration.ofSeconds(10));
+        retryConfig = retryConfig != null ? retryConfig : new RetryConfig(3, Duration.ofMillis(100), Duration.ofSeconds(20), true);
+        parameterStore = parameterStore != null ? parameterStore : new ParameterStoreConfig("/application", true, true);
+    }
+    
+    public record CacheConfig(
         /**
          * Enable caching for secrets and parameters
          */
-        private boolean enabled = true;
+        boolean enabled,
         
         /**
          * Time to live for cached values
          */
-        private Duration ttl = Duration.ofMinutes(5);
+        Duration ttl,
         
         /**
          * Maximum number of cached entries
          */
-        private long maximumSize = 1000;
+        long maximumSize,
         
         /**
          * Enable cache statistics
          */
-        private boolean enableStatistics = true;
+        boolean enableStatistics
+    ) {
+        public CacheConfig {
+            ttl = ttl != null ? ttl : Duration.ofMinutes(5);
+            maximumSize = maximumSize == 0 ? 1000L : maximumSize;
+        }
     }
     
-    @Data
-    public static class ConnectionConfig {
+    public record ConnectionConfig(
         /**
          * Maximum number of connections
          */
-        private int maxConnections = 50;
+        int maxConnections,
         
         /**
          * Connection timeout
          */
-        private Duration connectionTimeout = Duration.ofSeconds(10);
+        Duration connectionTimeout,
         
         /**
          * Socket timeout
          */
-        private Duration socketTimeout = Duration.ofSeconds(30);
+        Duration socketTimeout,
         
         /**
          * Connection acquisition timeout
          */
-        private Duration connectionAcquisitionTimeout = Duration.ofSeconds(10);
+        Duration connectionAcquisitionTimeout
+    ) {
+        public ConnectionConfig {
+            maxConnections = maxConnections == 0 ? 50 : maxConnections;
+            connectionTimeout = connectionTimeout != null ? connectionTimeout : Duration.ofSeconds(10);
+            socketTimeout = socketTimeout != null ? socketTimeout : Duration.ofSeconds(30);
+            connectionAcquisitionTimeout = connectionAcquisitionTimeout != null ? connectionAcquisitionTimeout : Duration.ofSeconds(10);
+        }
     }
     
-    @Data
-    public static class RetryConfig {
+    public record RetryConfig(
         /**
          * Maximum number of retry attempts
          */
-        private int maxRetries = 3;
+        int maxRetries,
         
         /**
          * Base delay for exponential backoff
          */
-        private Duration baseDelay = Duration.ofMillis(100);
+        Duration baseDelay,
         
         /**
          * Maximum backoff time
          */
-        private Duration maxBackoff = Duration.ofSeconds(20);
+        Duration maxBackoff,
         
         /**
          * Enable adaptive retry
          */
-        private boolean enableAdaptiveRetry = true;
+        boolean enableAdaptiveRetry
+    ) {
+        public RetryConfig {
+            maxRetries = maxRetries == 0 ? 3 : maxRetries;
+            baseDelay = baseDelay != null ? baseDelay : Duration.ofMillis(100);
+            maxBackoff = maxBackoff != null ? maxBackoff : Duration.ofSeconds(20);
+        }
     }
     
-    @Data
-    public static class ParameterStoreConfig {
+    public record ParameterStoreConfig(
         /**
          * Default parameter path prefix
          */
-        private String pathPrefix = "/application";
+        String pathPrefix,
         
         /**
          * Enable recursive parameter fetching by default
          */
-        private boolean recursiveByDefault = true;
+        boolean recursiveByDefault,
         
         /**
          * Enable decryption by default for secure strings
          */
-        private boolean withDecryptionByDefault = true;
+        boolean withDecryptionByDefault
+    ) {
+        public ParameterStoreConfig {
+            pathPrefix = pathPrefix != null ? pathPrefix : "/application";
+        }
     }
 }

@@ -16,12 +16,16 @@ import org.testcontainers.containers.localstack.LocalStackContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
+import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.services.sns.SnsAsyncClient;
 import software.amazon.awssdk.services.sns.model.GetTopicAttributesRequest;
 import software.amazon.awssdk.services.sqs.SqsAsyncClient;
 import software.amazon.awssdk.services.sqs.model.CreateQueueRequest;
 import software.amazon.awssdk.services.sqs.model.Message;
 import software.amazon.awssdk.services.sqs.model.ReceiveMessageRequest;
+import software.amazon.awssdk.services.sqs.model.QueueAttributeName;
 
 import java.time.Duration;
 import java.util.List;
@@ -64,7 +68,7 @@ class SnsIntegrationTest {
     @DynamicPropertySource
     static void configureProperties(DynamicPropertyRegistry registry) {
         registry.add("aws.region", () -> localstack.getRegion());
-        registry.add("aws.endpoint", localstack::getEndpoint);
+        registry.add("aws.sns.endpoint", () -> localstack.getEndpoint().toString());
         registry.add("aws.credentials.access-key-id", () -> localstack.getAccessKey());
         registry.add("aws.credentials.secret-access-key", () -> localstack.getSecretKey());
         
@@ -79,8 +83,9 @@ class SnsIntegrationTest {
         // Setup SQS client for cross-service integration testing
         sqsClient = SqsAsyncClient.builder()
                 .endpointOverride(localstack.getEndpoint())
-                .region(localstack.getRegion())
-                .credentialsProvider(localstack.getDefaultCredentialsProvider())
+                .region(Region.of(localstack.getRegion()))
+                .credentialsProvider(StaticCredentialsProvider.create(
+                    AwsBasicCredentials.create(localstack.getAccessKey(), localstack.getSecretKey())))
                 .build();
     }
 
@@ -100,10 +105,10 @@ class SnsIntegrationTest {
         // Then
         SnsTopic topic = future.join();
         assertThat(topic).isNotNull();
-        assertThat(topic.getTopicArn()).contains("integration-test-topic");
-        assertThat(topic.getName()).isEqualTo("integration-test-topic");
+        assertThat(topic.topicArn()).contains("integration-test-topic");
+        assertThat(topic.topicArn()).endsWith(":integration-test-topic");
         
-        testTopicArn = topic.getTopicArn();
+        testTopicArn = topic.topicArn();
     }
 
     @Test
@@ -115,9 +120,9 @@ class SnsIntegrationTest {
         // Then
         SnsTopic topic = future.join();
         assertThat(topic).isNotNull();
-        assertThat(topic.getTopicArn()).contains("test-fifo.fifo");
+        assertThat(topic.topicArn()).contains("test-fifo.fifo");
         
-        fifoTopicArn = topic.getTopicArn();
+        fifoTopicArn = topic.topicArn();
     }
 
     @Test
@@ -127,9 +132,9 @@ class SnsIntegrationTest {
         SnsMessage message = SnsMessage.builder()
                 .subject("Test Subject")
                 .body("Hello from integration test!")
-                .messageAttribute("Priority", "High")
-                .messageAttribute("Source", "IntegrationTest")
-                .build();
+                .build()
+                .withAttribute("Priority", "High")
+                .withAttribute("Source", "IntegrationTest");
 
         // When
         CompletableFuture<SnsPublishResult> future = snsService.publish(testTopicArn, message);
@@ -137,8 +142,7 @@ class SnsIntegrationTest {
         // Then
         SnsPublishResult result = future.join();
         assertThat(result).isNotNull();
-        assertThat(result.getMessageId()).isNotEmpty();
-        assertThat(result.isSuccessful()).isTrue();
+        assertThat(result.messageId()).isNotEmpty();
     }
 
     @Test
@@ -152,11 +156,14 @@ class SnsIntegrationTest {
             "items", List.of("item1", "item2")
         );
         
+        // Convert to JSON string
+        String jsonBody = "{\"orderId\":\"12345\",\"status\":\"PROCESSED\",\"amount\":99.99,\"items\":[\"item1\",\"item2\"]}";
+        
         SnsMessage message = SnsMessage.builder()
                 .subject("Order Processing")
-                .body(messageData)
-                .messageAttribute("ContentType", "application/json")
-                .build();
+                .body(jsonBody)
+                .build()
+                .withAttribute("ContentType", "application/json");
 
         // When
         CompletableFuture<SnsPublishResult> future = snsService.publish(testTopicArn, message);
@@ -164,7 +171,7 @@ class SnsIntegrationTest {
         // Then
         SnsPublishResult result = future.join();
         assertThat(result).isNotNull();
-        assertThat(result.getMessageId()).isNotEmpty();
+        assertThat(result.messageId()).isNotEmpty();
     }
 
     @Test
@@ -199,8 +206,7 @@ class SnsIntegrationTest {
         List<SnsPublishResult> results = future.join();
         assertThat(results).hasSize(3);
         results.forEach(result -> {
-            assertThat(result.getMessageId()).isNotEmpty();
-            assertThat(result.isSuccessful()).isTrue();
+            assertThat(result.messageId()).isNotEmpty();
         });
     }
 
@@ -217,7 +223,7 @@ class SnsIntegrationTest {
         // Then
         SnsPublishResult result = future.join();
         assertThat(result).isNotNull();
-        assertThat(result.getMessageId()).isNotEmpty();
+        assertThat(result.messageId()).isNotEmpty();
     }
 
     @Test
@@ -234,8 +240,8 @@ class SnsIntegrationTest {
         
         // Get queue ARN for subscription
         var queueAttributes = sqsClient.getQueueAttributes(builder -> 
-            builder.queueUrl(queueUrl).attributeNames("QueueArn")).join();
-        String queueArn = queueAttributes.attributes().get("QueueArn");
+            builder.queueUrl(queueUrl).attributeNames(QueueAttributeName.QUEUE_ARN)).join();
+        String queueArn = queueAttributes.attributes().get(QueueAttributeName.QUEUE_ARN);
 
         // When - Subscribe SQS to SNS topic
         CompletableFuture<SnsSubscription> subscriptionFuture = 
@@ -243,8 +249,8 @@ class SnsIntegrationTest {
         
         SnsSubscription subscription = subscriptionFuture.join();
         assertThat(subscription).isNotNull();
-        assertThat(subscription.getSubscriptionArn()).contains("subscription");
-        assertThat(subscription.getProtocol()).isEqualTo("sqs");
+        assertThat(subscription.subscriptionArn()).contains("subscription");
+        assertThat(subscription.protocol()).isEqualTo("sqs");
         
         // Publish test message
         SnsMessage testMessage = SnsMessage.builder()
@@ -303,9 +309,9 @@ class SnsIntegrationTest {
         List<SnsTopic> topics = future.join();
         assertThat(topics).isNotEmpty();
         assertThat(topics).anyMatch(topic -> 
-            topic.getTopicArn().contains("integration-test-topic"));
+            topic.topicArn().contains("integration-test-topic"));
         assertThat(topics).anyMatch(topic -> 
-            topic.getTopicArn().contains("test-fifo.fifo"));
+            topic.topicArn().contains("test-fifo.fifo"));
     }
 
     @Test
@@ -317,7 +323,7 @@ class SnsIntegrationTest {
         // Then
         List<SnsSubscription> subscriptions = future.join();
         assertThat(subscriptions).isNotEmpty();
-        assertThat(subscriptions).anyMatch(sub -> sub.getProtocol().equals("sqs"));
+        assertThat(subscriptions).anyMatch(sub -> sub.protocol().equals("sqs"));
     }
 
     @Test
@@ -347,15 +353,15 @@ class SnsIntegrationTest {
                 .build();
 
         // When - Publish message (this tests the retry configuration)
-        CompletableFuture<SnsPublishResult> future = snsService.publish(retryTopic.getTopicArn(), message);
+        CompletableFuture<SnsPublishResult> future = snsService.publish(retryTopic.topicArn(), message);
         
         // Then
         SnsPublishResult result = future.join();
         assertThat(result).isNotNull();
-        assertThat(result.getMessageId()).isNotEmpty();
+        assertThat(result.messageId()).isNotEmpty();
         
         // Cleanup
-        snsService.deleteTopic(retryTopic.getTopicArn()).join();
+        snsService.deleteTopic(retryTopic.topicArn()).join();
     }
 
     @Test
@@ -370,14 +376,14 @@ class SnsIntegrationTest {
         List<SnsMessage> testMessages = List.of(
             SnsMessage.builder()
                     .subject("Order Created")
-                    .body(Map.of("orderId", "ORDER-001", "status", "CREATED"))
-                    .messageAttribute("EventType", "OrderCreated")
-                    .build(),
+                    .body("{\"orderId\":\"ORDER-001\",\"status\":\"CREATED\"}")
+                    .build()
+                    .withAttribute("EventType", "OrderCreated"),
             SnsMessage.builder()
                     .subject("Payment Processed")
-                    .body(Map.of("orderId", "ORDER-001", "amount", 250.00))
-                    .messageAttribute("EventType", "PaymentProcessed")
+                    .body("{\"orderId\":\"ORDER-001\",\"amount\":250.00}")
                     .build()
+                    .withAttribute("EventType", "PaymentProcessed")
         );
         
         // Publish messages
@@ -405,7 +411,7 @@ class SnsIntegrationTest {
     @Order(14)
     void performanceTest_대량메시지_동시발행() throws Exception {
         // Given
-        String perfTopicArn = snsService.createTopic("performance-test-topic").join().getTopicArn();
+        String perfTopicArn = snsService.createTopic("performance-test-topic").join().topicArn();
         int messageCount = 50;
         
         // When - Publish messages concurrently
@@ -416,14 +422,14 @@ class SnsIntegrationTest {
                 .mapToObj(i -> SnsMessage.builder()
                         .subject("Performance Test " + i)
                         .body("Message " + i + " for performance testing")
-                        .messageAttribute("Index", String.valueOf(i))
-                        .build())
+                        .build()
+                        .withAttribute("Index", String.valueOf(i)))
                 .map(message -> snsService.publish(perfTopicArn, message))
                 .toList();
         
         // Wait for all to complete
         CompletableFuture<Void> allOf = CompletableFuture.allOf(
-            futures.toArray(new CompletableFuture[0]));
+            futures.toArray(new CompletableFuture<?>[0]));
         allOf.join();
         
         long duration = System.currentTimeMillis() - startTime;
@@ -434,7 +440,7 @@ class SnsIntegrationTest {
                 .toList();
         
         assertThat(results).hasSize(messageCount);
-        assertThat(results).allMatch(SnsPublishResult::isSuccessful);
+        assertThat(results).allMatch(result -> result.messageId() != null && !result.messageId().isEmpty());
         assertThat(duration).isLessThan(10000); // Should complete within 10 seconds
         
         System.out.printf("Published %d messages in %d ms (%.2f msg/sec)%n", 
@@ -451,8 +457,8 @@ class SnsIntegrationTest {
         if (testTopicArn != null) {
             snsService.listSubscriptions(testTopicArn).join()
                     .forEach(subscription -> {
-                        if (!"PendingConfirmation".equals(subscription.getSubscriptionArn())) {
-                            snsService.unsubscribe(subscription.getSubscriptionArn()).join();
+                        if (!"PendingConfirmation".equals(subscription.subscriptionArn())) {
+                            snsService.unsubscribe(subscription.subscriptionArn()).join();
                         }
                     });
         }

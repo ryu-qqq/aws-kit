@@ -10,6 +10,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.core.client.config.ClientOverrideConfiguration;
+import software.amazon.awssdk.core.retry.RetryMode;
 import software.amazon.awssdk.core.retry.RetryPolicy;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.lambda.LambdaAsyncClient;
@@ -63,10 +64,8 @@ public class AwsLambdaAutoConfiguration {
         // 클라이언트 수준에서 재시도 정책 설정
         // 애플리케이션 수준 재시도와 구분하여 저수준 네트워크 오류 처리
         ClientOverrideConfiguration overrideConfig = ClientOverrideConfiguration.builder()
-                .retryPolicy(RetryPolicy.builder()
-                        .numRetries(lambdaProperties.getMaxRetries())      // 최대 재시도 횟수
-                        .build())
-                .apiCallTimeout(lambdaProperties.getTimeout())             // API 호출 타임아웃
+                .retryStrategy(RetryMode.STANDARD)
+                .apiCallTimeout(lambdaProperties.timeout())             // API 호출 타임아웃
                 .build();
         
         // Lambda 비동기 클라이언트 빌더 패턴으로 생성
@@ -99,4 +98,5 @@ public class AwsLambdaAutoConfiguration {
     public LambdaService lambdaService(LambdaAsyncClient lambdaAsyncClient, LambdaProperties lambdaProperties) {
         return new DefaultLambdaService(lambdaAsyncClient, lambdaProperties);
     }
+
 }

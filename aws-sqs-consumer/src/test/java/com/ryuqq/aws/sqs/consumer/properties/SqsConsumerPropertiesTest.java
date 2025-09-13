@@ -16,7 +16,9 @@ class SqsConsumerPropertiesTest {
     @Test
     void defaultValues() {
         // Given
-        SqsConsumerProperties properties = new SqsConsumerProperties();
+        SqsConsumerProperties properties = new SqsConsumerProperties(
+                null, null, null, null, null, null, null, null,
+                null, null, null, null, null, null, null, null, null, null);
         
         // Then
         assertThat(properties.getDefaultMaxConcurrentMessages()).isEqualTo(10);
@@ -41,30 +43,27 @@ class SqsConsumerPropertiesTest {
     }
     
     @Test
-    void settersAndGetters() {
+    void customValuesViaConstructor() {
         // Given
-        SqsConsumerProperties properties = new SqsConsumerProperties();
-        
-        // When
-        properties.setDefaultMaxConcurrentMessages(5);
-        properties.setDefaultPollTimeoutSeconds(15);
-        properties.setDefaultMessageVisibilitySeconds(60);
-        properties.setDefaultMaxMessagesPerPoll(5);
-        properties.setDefaultBatchSize(20);
-        properties.setDefaultMaxRetryAttempts(5);
-        properties.setDefaultRetryDelayMillis(2000L);
-        properties.setDefaultAutoDelete(false);
-        
-        properties.setThreadPoolSize(30);
-        properties.setThreadPoolCoreSize(15);
-        properties.setThreadPoolMaxSize(100);
-        properties.setThreadPoolQueueCapacity(200);
-        properties.setThreadPoolKeepAliveSeconds(120);
-        properties.setThreadNamePrefix("custom-consumer-");
-        
-        properties.setEnableMetrics(false);
-        properties.setHealthCheckIntervalMillis(60000L);
-        properties.setShutdownTimeoutMillis(60000L);
+        SqsConsumerProperties properties = new SqsConsumerProperties(
+                5,    // defaultMaxConcurrentMessages
+                15,   // defaultPollTimeoutSeconds  
+                60,   // defaultMessageVisibilitySeconds
+                5,    // defaultMaxMessagesPerPoll
+                20,   // defaultBatchSize
+                5,    // defaultMaxRetryAttempts
+                2000L,// defaultRetryDelayMillis
+                false,// defaultAutoDelete
+                30,   // threadPoolSize
+                15,   // threadPoolCoreSize
+                100,  // threadPoolMaxSize
+                200,  // threadPoolQueueCapacity
+                120,  // threadPoolKeepAliveSeconds
+                "custom-consumer-", // threadNamePrefix
+                false,// enableMetrics
+                60000L,// healthCheckIntervalMillis
+                60000L,// shutdownTimeoutMillis
+                null); // executor
         
         // Then
         assertThat(properties.getDefaultMaxConcurrentMessages()).isEqualTo(5);

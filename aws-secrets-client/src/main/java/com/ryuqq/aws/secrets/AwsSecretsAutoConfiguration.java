@@ -6,8 +6,8 @@ import com.ryuqq.aws.secrets.cache.SecretsCacheManager;
 import com.ryuqq.aws.secrets.properties.SecretsProperties;
 import com.ryuqq.aws.secrets.service.ParameterStoreService;
 import com.ryuqq.aws.secrets.service.SecretsService;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -30,16 +30,21 @@ import java.net.URI;
 /**
  * Spring Boot auto-configuration for AWS Secrets Manager and Parameter Store
  */
-@Slf4j
 @AutoConfiguration
-@RequiredArgsConstructor
 @ConditionalOnClass({SecretsManagerAsyncClient.class, SsmAsyncClient.class})
 @ConditionalOnProperty(prefix = "aws.secrets", name = "enabled", havingValue = "true", matchIfMissing = true)
 @EnableConfigurationProperties({SecretsProperties.class, AwsProperties.class})
 public class AwsSecretsAutoConfiguration {
-    
+
+    private static final Logger log = LoggerFactory.getLogger(AwsSecretsAutoConfiguration.class);
+
     private final SecretsProperties secretsProperties;
     private final AwsProperties awsProperties;
+
+    public AwsSecretsAutoConfiguration(SecretsProperties secretsProperties, AwsProperties awsProperties) {
+        this.secretsProperties = secretsProperties;
+        this.awsProperties = awsProperties;
+    }
     
     @Bean
     @ConditionalOnMissingBean
@@ -49,18 +54,18 @@ public class AwsSecretsAutoConfiguration {
         SecretsManagerAsyncClientBuilder builder = SecretsManagerAsyncClient.builder();
         
         // Configure region
-        String region = secretsProperties.getRegion() != null ? 
-                       secretsProperties.getRegion() : awsProperties.getRegion();
+        String region = secretsProperties.region() != null ? 
+                       secretsProperties.region() : awsProperties.getRegion();
         builder.region(Region.of(region));
         
         // Configure credentials
         builder.credentialsProvider(credentialsProvider);
         
         // Configure endpoint (for LocalStack)
-        if (secretsProperties.getSecretsManagerEndpoint() != null) {
-            builder.endpointOverride(URI.create(secretsProperties.getSecretsManagerEndpoint()));
+        if (secretsProperties.secretsManagerEndpoint() != null) {
+            builder.endpointOverride(URI.create(secretsProperties.secretsManagerEndpoint()));
             log.info("Using custom Secrets Manager endpoint: {}", 
-                    secretsProperties.getSecretsManagerEndpoint());
+                    secretsProperties.secretsManagerEndpoint());
         }
         
         // HTTP client configuration is handled by AWS SDK defaults
@@ -81,17 +86,17 @@ public class AwsSecretsAutoConfiguration {
         SsmAsyncClientBuilder builder = SsmAsyncClient.builder();
         
         // Configure region
-        String region = secretsProperties.getRegion() != null ? 
-                       secretsProperties.getRegion() : awsProperties.getRegion();
+        String region = secretsProperties.region() != null ? 
+                       secretsProperties.region() : awsProperties.getRegion();
         builder.region(Region.of(region));
         
         // Configure credentials
         builder.credentialsProvider(credentialsProvider);
         
         // Configure endpoint (for LocalStack)
-        if (secretsProperties.getSsmEndpoint() != null) {
-            builder.endpointOverride(URI.create(secretsProperties.getSsmEndpoint()));
-            log.info("Using custom SSM endpoint: {}", secretsProperties.getSsmEndpoint());
+        if (secretsProperties.ssmEndpoint() != null) {
+            builder.endpointOverride(URI.create(secretsProperties.ssmEndpoint()));
+            log.info("Using custom SSM endpoint: {}", secretsProperties.ssmEndpoint());
         }
         
         // HTTP client configuration is handled by AWS SDK defaults
@@ -107,15 +112,15 @@ public class AwsSecretsAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     public SecretsCacheManager secretsCacheManager() {
-        SecretsProperties.CacheConfig cacheConfig = secretsProperties.getCache();
+        SecretsProperties.CacheConfig cacheConfig = secretsProperties.cache();
         
         log.info("Creating secrets cache manager with TTL: {}, max size: {}, enabled: {}", 
-                cacheConfig.getTtl(), cacheConfig.getMaximumSize(), cacheConfig.isEnabled());
+                cacheConfig.ttl(), cacheConfig.maximumSize(), cacheConfig.enabled());
         
         return new SecretsCacheManager(
-                cacheConfig.getTtl(),
-                cacheConfig.getMaximumSize(),
-                cacheConfig.isEnabled()
+                cacheConfig.ttl(),
+                cacheConfig.maximumSize(),
+                cacheConfig.enabled()
         );
     }
     

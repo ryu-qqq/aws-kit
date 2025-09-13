@@ -1,39 +1,52 @@
 package com.ryuqq.aws.sns.types;
 
-import lombok.Builder;
-import lombok.Getter;
-import lombok.ToString;
-
 /**
- * SNS Subscription representation
+ * SNS Subscription representation as an immutable record
  */
-@Getter
-@Builder
-@ToString
-public class SnsSubscription {
-    
+public record SnsSubscription(
     /**
      * ARN of the subscription
      */
-    private final String subscriptionArn;
-    
+    String subscriptionArn,
+
     /**
      * ARN of the topic
      */
-    private final String topicArn;
-    
+    String topicArn,
+
     /**
      * Protocol (email, sms, http, https, sqs, lambda, etc.)
      */
-    private final String protocol;
-    
+    String protocol,
+
     /**
      * Endpoint (email address, phone number, URL, etc.)
      */
-    private final String endpoint;
-    
+    String endpoint,
+
     /**
      * AWS account ID of the subscription owner
      */
-    private final String owner;
+    String owner
+) {
+
+    /**
+     * Create subscription with basic info
+     */
+    public static SnsSubscription of(String subscriptionArn, String topicArn, String protocol, String endpoint) {
+        return new SnsSubscription(subscriptionArn, topicArn, protocol, endpoint, null);
+    }
+
+    /**
+     * Create subscription with all properties
+     */
+    public static SnsSubscription of(
+        String subscriptionArn,
+        String topicArn,
+        String protocol,
+        String endpoint,
+        String owner
+    ) {
+        return new SnsSubscription(subscriptionArn, topicArn, protocol, endpoint, owner);
+    }
 }

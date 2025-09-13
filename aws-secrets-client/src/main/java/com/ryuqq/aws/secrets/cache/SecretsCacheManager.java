@@ -2,7 +2,8 @@ package com.ryuqq.aws.secrets.cache;
 
 import com.github.benmanes.caffeine.cache.AsyncCache;
 import com.github.benmanes.caffeine.cache.Caffeine;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
@@ -11,8 +12,9 @@ import java.util.function.Function;
 /**
  * Cache manager for secrets and parameters with TTL and size-based eviction
  */
-@Slf4j
 public class SecretsCacheManager {
+
+    private static final Logger log = LoggerFactory.getLogger(SecretsCacheManager.class);
     
     private final AsyncCache<String, String> cache;
     private final boolean cacheEnabled;
@@ -97,47 +99,46 @@ public class SecretsCacheManager {
         }
         
         var stats = cache.synchronous().stats();
-        return CacheStats.builder()
-                .hitCount(stats.hitCount())
-                .missCount(stats.missCount())
-                .loadSuccessCount(stats.loadSuccessCount())
-                .loadFailureCount(stats.loadFailureCount())
-                .totalLoadTime(stats.totalLoadTime())
-                .evictionCount(stats.evictionCount())
-                .size(cache.synchronous().estimatedSize())
-                .enabled(true)
-                .build();
+        return new CacheStats(
+                stats.hitCount(),
+                stats.missCount(),
+                stats.loadSuccessCount(),
+                stats.loadFailureCount(),
+                stats.totalLoadTime(),
+                stats.evictionCount(),
+                cache.synchronous().estimatedSize(),
+                true
+        );
     }
     
     /**
      * Cache statistics
      */
-    @lombok.Builder
-    @lombok.Getter
-    public static class CacheStats {
-        private final long hitCount;
-        private final long missCount;
-        private final long loadSuccessCount;
-        private final long loadFailureCount;
-        private final long totalLoadTime;
-        private final long evictionCount;
-        private final long size;
-        private final boolean enabled;
+    public record CacheStats(
+            long hitCount,
+            long missCount,
+            long loadSuccessCount,
+            long loadFailureCount,
+            long totalLoadTime,
+            long evictionCount,
+            long size,
+            boolean enabled
+    ) {
         
         public double hitRate() {
             long total = hitCount + missCount;
             return total == 0 ? 0.0 : (double) hitCount / total;
         }
-        
+
         public double missRate() {
             long total = hitCount + missCount;
             return total == 0 ? 0.0 : (double) missCount / total;
         }
-        
+
         public static CacheStats disabled() {
-            return CacheStats.builder()
-                    .enabled(false)
-                    .build();
+            return new CacheStats(
+                    0, 0, 0, 0, 0, 0, 0, false
+            );
         }
     }
 }

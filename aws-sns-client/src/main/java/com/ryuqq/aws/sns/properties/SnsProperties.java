@@ -1,6 +1,5 @@
 package com.ryuqq.aws.sns.properties;
 
-import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 import java.time.Duration;
@@ -8,102 +7,122 @@ import java.time.Duration;
 /**
  * SNS configuration properties
  */
-@Data
 @ConfigurationProperties(prefix = "aws.sns")
-public class SnsProperties {
-    
+public record SnsProperties(
     /**
      * AWS region for SNS
      */
-    private String region;
+    String region,
     
     /**
      * SNS endpoint override (for LocalStack)
      */
-    private String endpoint;
+    String endpoint,
     
     /**
      * Default topic ARN for publishing
      */
-    private String defaultTopicArn;
+    String defaultTopicArn,
     
     /**
      * Connection configuration
      */
-    private ConnectionConfig connectionConfig = new ConnectionConfig();
+    ConnectionConfig connectionConfig,
     
     /**
      * Retry configuration
      */
-    private RetryConfig retryConfig = new RetryConfig();
+    RetryConfig retryConfig,
     
     /**
      * SMS configuration
      */
-    private SmsConfig smsConfig = new SmsConfig();
+    SmsConfig smsConfig
+) {
     
-    @Data
-    public static class ConnectionConfig {
+    public SnsProperties {
+        connectionConfig = connectionConfig != null ? connectionConfig : new ConnectionConfig(50, Duration.ofSeconds(10), Duration.ofSeconds(30), Duration.ofSeconds(10));
+        retryConfig = retryConfig != null ? retryConfig : new RetryConfig(3, Duration.ofMillis(100), Duration.ofSeconds(20), true);
+        smsConfig = smsConfig != null ? smsConfig : new SmsConfig(null, SmsConfig.SmsType.TRANSACTIONAL, 0.50);
+    }
+    
+    public record ConnectionConfig(
         /**
          * Maximum number of connections
          */
-        private int maxConnections = 50;
+        int maxConnections,
         
         /**
          * Connection timeout
          */
-        private Duration connectionTimeout = Duration.ofSeconds(10);
+        Duration connectionTimeout,
         
         /**
          * Socket timeout
          */
-        private Duration socketTimeout = Duration.ofSeconds(30);
+        Duration socketTimeout,
         
         /**
          * Connection acquisition timeout
          */
-        private Duration connectionAcquisitionTimeout = Duration.ofSeconds(10);
+        Duration connectionAcquisitionTimeout
+    ) {
+        public ConnectionConfig {
+            maxConnections = maxConnections == 0 ? 50 : maxConnections;
+            connectionTimeout = connectionTimeout != null ? connectionTimeout : Duration.ofSeconds(10);
+            socketTimeout = socketTimeout != null ? socketTimeout : Duration.ofSeconds(30);
+            connectionAcquisitionTimeout = connectionAcquisitionTimeout != null ? connectionAcquisitionTimeout : Duration.ofSeconds(10);
+        }
     }
     
-    @Data
-    public static class RetryConfig {
+    public record RetryConfig(
         /**
          * Maximum number of retry attempts
          */
-        private int maxRetries = 3;
+        int maxRetries,
         
         /**
          * Base delay for exponential backoff
          */
-        private Duration baseDelay = Duration.ofMillis(100);
+        Duration baseDelay,
         
         /**
          * Maximum backoff time
          */
-        private Duration maxBackoff = Duration.ofSeconds(20);
+        Duration maxBackoff,
         
         /**
          * Enable adaptive retry
          */
-        private boolean enableAdaptiveRetry = true;
+        boolean enableAdaptiveRetry
+    ) {
+        public RetryConfig {
+            maxRetries = maxRetries == 0 ? 3 : maxRetries;
+            baseDelay = baseDelay != null ? baseDelay : Duration.ofMillis(100);
+            maxBackoff = maxBackoff != null ? maxBackoff : Duration.ofSeconds(20);
+        }
     }
     
-    @Data
-    public static class SmsConfig {
+    public record SmsConfig(
         /**
          * SMS sender ID
          */
-        private String senderId;
+        String senderId,
         
         /**
          * SMS type (Promotional or Transactional)
          */
-        private SmsType smsType = SmsType.TRANSACTIONAL;
+        SmsType smsType,
         
         /**
          * Maximum price for SMS
          */
-        private Double maxPrice = 0.50;
+        Double maxPrice
+    ) {
+        public SmsConfig {
+            smsType = smsType != null ? smsType : SmsType.TRANSACTIONAL;
+            maxPrice = maxPrice != null ? maxPrice : 0.50;
+        }
         
         public enum SmsType {
             PROMOTIONAL,

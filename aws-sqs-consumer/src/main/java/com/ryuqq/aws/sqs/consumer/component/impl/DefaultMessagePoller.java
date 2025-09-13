@@ -3,8 +3,8 @@ package com.ryuqq.aws.sqs.consumer.component.impl;
 import com.ryuqq.aws.sqs.consumer.component.MessagePoller;
 import com.ryuqq.aws.sqs.service.SqsService;
 import com.ryuqq.aws.sqs.types.SqsMessage;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -15,12 +15,16 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * Default implementation of MessagePoller.
  * Handles SQS message polling with configurable parameters.
  */
-@Slf4j
 @Component
-@RequiredArgsConstructor
 public class DefaultMessagePoller implements MessagePoller {
-    
+
+    private static final Logger log = LoggerFactory.getLogger(DefaultMessagePoller.class);
+
     private final SqsService sqsService;
+
+    public DefaultMessagePoller(SqsService sqsService) {
+        this.sqsService = sqsService;
+    }
     private final AtomicBoolean polling = new AtomicBoolean(false);
     private ScheduledExecutorService pollingExecutor;
     private CompletableFuture<Void> pollingTask;

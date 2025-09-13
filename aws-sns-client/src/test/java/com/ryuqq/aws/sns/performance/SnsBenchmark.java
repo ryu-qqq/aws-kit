@@ -122,10 +122,10 @@ public class SnsBenchmark {
         SnsMessage message = SnsMessage.builder()
             .body("Benchmark message body " + System.nanoTime())
             .subject("Benchmark Subject")
-            .attribute("BenchmarkId", UUID.randomUUID().toString())
-            .attribute("Timestamp", Instant.now().toString())
-            .attribute("ThreadId", String.valueOf(Thread.currentThread().getId()))
-            .build();
+            .build()
+            .withAttribute("BenchmarkId", UUID.randomUUID().toString())
+            .withAttribute("Timestamp", Instant.now().toString())
+            .withAttribute("ThreadId", String.valueOf(Thread.currentThread().threadId()));
         bh.consume(message);
     }
     
@@ -250,18 +250,14 @@ public class SnsBenchmark {
             .thenAnswer(invocation -> {
                 PublishResponse response = invocation.getArgument(0);
                 
-                return SnsPublishResult.builder()
-                    .messageId(response.messageId())
-                    .build();
+                return SnsPublishResult.of(response.messageId());
             });
         
         when(typeAdapter.toBatchPublishResult(any()))
             .thenAnswer(invocation -> {
                 PublishBatchResultEntry entry = invocation.getArgument(0);
                 
-                return SnsPublishResult.builder()
-                    .messageId(entry.messageId())
-                    .build();
+                return SnsPublishResult.of(entry.messageId());
             });
     }
     
@@ -269,14 +265,15 @@ public class SnsBenchmark {
         // Prepare test messages for benchmarks
         testMessages = new ArrayList<>();
         for (int i = 0; i < 1000; i++) {
-            testMessages.add(SnsMessage.builder()
+            SnsMessage msg = SnsMessage.builder()
                 .body("Benchmark test message " + i + " with content: " + 
                       "Lorem ipsum dolor sit amet, consectetur adipiscing elit.")
                 .subject("Benchmark Subject " + i)
-                .attribute("MessageId", String.valueOf(i))
-                .attribute("Timestamp", Instant.now().toString())
-                .attribute("BenchmarkData", generateRandomString(100))
-                .build());
+                .build()
+                .withAttribute("MessageId", String.valueOf(i))
+                .withAttribute("Timestamp", Instant.now().toString())
+                .withAttribute("BenchmarkData", generateRandomString(100));
+            testMessages.add(msg);
         }
         
         // Prepare batch messages
@@ -284,12 +281,13 @@ public class SnsBenchmark {
         for (int batch = 0; batch < 100; batch++) {
             List<SnsMessage> batchList = new ArrayList<>();
             for (int msg = 0; msg < 10; msg++) {
-                batchList.add(SnsMessage.builder()
+                SnsMessage batchMsg = SnsMessage.builder()
                     .body("Batch message " + batch + "-" + msg)
                     .subject("Batch Subject")
-                    .attribute("BatchId", String.valueOf(batch))
-                    .attribute("MessageIndex", String.valueOf(msg))
-                    .build());
+                    .build()
+                    .withAttribute("BatchId", String.valueOf(batch))
+                    .withAttribute("MessageIndex", String.valueOf(msg));
+                batchList.add(batchMsg);
             }
             batchMessages.add(batchList);
         }

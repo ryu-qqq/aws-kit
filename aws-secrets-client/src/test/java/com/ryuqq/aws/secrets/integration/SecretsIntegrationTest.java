@@ -35,6 +35,7 @@ import static org.testcontainers.containers.localstack.LocalStackContainer.Servi
 @SpringBootTest(classes = AwsSecretsAutoConfiguration.class)
 @Testcontainers
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
+@Disabled("Integration tests require Docker environment")
 class SecretsIntegrationTest {
 
     @Container

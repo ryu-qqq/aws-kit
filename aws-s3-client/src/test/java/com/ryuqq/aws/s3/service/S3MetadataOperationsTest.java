@@ -89,20 +89,20 @@ class S3MetadataOperationsTest {
 
         // Then
         assertThat(metadata).isNotNull();
-        assertThat(metadata.getContentLength()).isEqualTo(1024L);
-        assertThat(metadata.getContentType()).isEqualTo("image/jpeg");
-        assertThat(metadata.getETag()).isEqualTo("\"d41d8cd98f00b204e9800998ecf8427e\"");
-        assertThat(metadata.getLastModified()).isEqualTo(lastModified);
-        assertThat(metadata.getVersionId()).isEqualTo("version-123");
-        assertThat(metadata.getStorageClass()).isEqualTo("STANDARD");
-        assertThat(metadata.getServerSideEncryption()).isEqualTo("AES256");
-        assertThat(metadata.getUserMetadata()).containsEntry("author", "test-user");
-        assertThat(metadata.getUserMetadata()).containsEntry("category", "photo");
-        assertThat(metadata.getCacheControl()).isEqualTo("max-age=3600");
-        assertThat(metadata.getContentEncoding()).isEqualTo("gzip");
-        assertThat(metadata.getContentDisposition()).isEqualTo("attachment; filename=\"photo.jpg\"");
+        assertThat(metadata.contentLength()).isEqualTo(1024L);
+        assertThat(metadata.contentType()).isEqualTo("image/jpeg");
+        assertThat(metadata.eTag()).isEqualTo("\"d41d8cd98f00b204e9800998ecf8427e\"");
+        assertThat(metadata.lastModified()).isEqualTo(lastModified);
+        assertThat(metadata.versionId()).isEqualTo("version-123");
+        assertThat(metadata.storageClass()).isEqualTo("STANDARD");
+        assertThat(metadata.serverSideEncryption()).isEqualTo("AES256");
+        assertThat(metadata.userMetadata()).containsEntry("author", "test-user");
+        assertThat(metadata.userMetadata()).containsEntry("category", "photo");
+        assertThat(metadata.cacheControl()).isEqualTo("max-age=3600");
+        assertThat(metadata.contentEncoding()).isEqualTo("gzip");
+        assertThat(metadata.contentDisposition()).isEqualTo("attachment; filename=\"photo.jpg\"");
 
-        verify(s3AsyncClient).headObject(argThat(request -> 
+        verify(s3AsyncClient).headObject(argThat((HeadObjectRequest request) ->
             request.bucket().equals(bucket) && request.key().equals(key)));
     }
 
@@ -155,7 +155,7 @@ class S3MetadataOperationsTest {
         // Then
         assertThat(result.join()).isEqualTo(expectedETag);
         
-        verify(s3AsyncClient).copyObject(argThat(request -> 
+        verify(s3AsyncClient).copyObject(argThat((CopyObjectRequest request) ->
             request.sourceBucket().equals(sourceBucket) &&
             request.sourceKey().equals(sourceKey) &&
             request.destinationBucket().equals(destBucket) &&
@@ -197,7 +197,7 @@ class S3MetadataOperationsTest {
         // Then
         assertThat(result.join()).isEqualTo(expectedETag);
         
-        verify(s3AsyncClient).copyObject(argThat(request -> 
+        verify(s3AsyncClient).copyObject(argThat((CopyObjectRequest request) -> 
             request.sourceBucket().equals(sourceBucket) &&
             request.sourceKey().equals(sourceKey) &&
             request.destinationBucket().equals(destBucket) &&
@@ -236,10 +236,10 @@ class S3MetadataOperationsTest {
         // Then
         assertThat(result.join()).isEqualTo(expectedETag);
         
-        verify(s3AsyncClient).copyObject(argThat(request -> 
+        verify(s3AsyncClient).copyObject(argThat((CopyObjectRequest request) -> 
             request.metadataDirective() == MetadataDirective.COPY &&
             !request.hasMetadata() &&
-            !request.hasStorageClass()));
+            request.storageClass() == null));
     }
 
     @Test
@@ -272,7 +272,7 @@ class S3MetadataOperationsTest {
         // Then
         assertThat(result.join()).isEqualTo(expectedETag);
         
-        verify(s3AsyncClient).copyObject(argThat(request -> 
+        verify(s3AsyncClient).copyObject(argThat((CopyObjectRequest request) -> 
             request.metadataDirective() == MetadataDirective.COPY &&
             request.storageClass() == StorageClass.GLACIER &&
             !request.hasMetadata()));
@@ -306,7 +306,7 @@ class S3MetadataOperationsTest {
         assertThat(result.join()).isEqualTo(expectedETag);
         
         // 크로스 리전 복사에서도 정상적으로 copySource가 설정되는지 확인
-        verify(s3AsyncClient).copyObject(argThat(request -> 
+        verify(s3AsyncClient).copyObject(argThat((CopyObjectRequest request) -> 
             request.copySource().equals(sourceBucket + "/" + sourceKey)));
     }
 
@@ -334,9 +334,9 @@ class S3MetadataOperationsTest {
 
         // Then
         assertThat(metadata).isNotNull();
-        assertThat(metadata.getContentLength()).isEqualTo(512L);
-        assertThat(metadata.getUserMetadata()).isEmpty();
-        assertThat(metadata.getVersionId()).isNull();
-        assertThat(metadata.getStorageClass()).isNull();
+        assertThat(metadata.contentLength()).isEqualTo(512L);
+        assertThat(metadata.userMetadata()).isEmpty();
+        assertThat(metadata.versionId()).isNull();
+        assertThat(metadata.storageClass()).isNull();
     }
 }

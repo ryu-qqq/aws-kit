@@ -1,7 +1,8 @@
 package com.ryuqq.aws.secrets.service;
 
 import com.ryuqq.aws.secrets.cache.SecretsCacheManager;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.services.ssm.SsmAsyncClient;
 import software.amazon.awssdk.services.ssm.model.*;
 
@@ -13,8 +14,9 @@ import java.util.stream.Collectors;
 /**
  * Service for AWS Systems Manager Parameter Store
  */
-@Slf4j
 public class ParameterStoreService {
+
+    private static final Logger log = LoggerFactory.getLogger(ParameterStoreService.class);
     
     private final SsmAsyncClient ssmClient;
     private final SecretsCacheManager cacheManager;
@@ -256,10 +258,12 @@ public class ParameterStoreService {
      * Custom exception for Parameter Store operations
      */
     public static class ParameterStoreException extends RuntimeException {
+        private static final long serialVersionUID = 1L;
+
         public ParameterStoreException(String message) {
             super(message);
         }
-        
+
         public ParameterStoreException(String message, Throwable cause) {
             super(message, cause);
         }

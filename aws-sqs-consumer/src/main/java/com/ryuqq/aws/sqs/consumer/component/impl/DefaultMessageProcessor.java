@@ -3,8 +3,8 @@ package com.ryuqq.aws.sqs.consumer.component.impl;
 import com.ryuqq.aws.sqs.consumer.component.MessageProcessor;
 import com.ryuqq.aws.sqs.service.SqsService;
 import com.ryuqq.aws.sqs.types.SqsMessage;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -13,12 +13,16 @@ import java.util.List;
  * Default implementation of MessageProcessor.
  * Handles both single message and batch processing.
  */
-@Slf4j
 @Component
-@RequiredArgsConstructor
 public class DefaultMessageProcessor implements MessageProcessor {
-    
+
+    private static final Logger log = LoggerFactory.getLogger(DefaultMessageProcessor.class);
+
     private final SqsService sqsService;
+
+    public DefaultMessageProcessor(SqsService sqsService) {
+        this.sqsService = sqsService;
+    }
     
     @Override
     public void processMessage(SqsMessage message, ProcessingConfig config) throws MessageProcessingException {

@@ -38,7 +38,7 @@ class AwsSdkCommonsAutoConfigurationTest {
     void shouldCreateRegionBeanWithDefaultRegion() {
         contextRunner.run(context -> {
             Region region = context.getBean(Region.class);
-            assertThat(region).isEqualTo(Region.US_WEST_2);
+            assertThat(region).isEqualTo(Region.AP_NORTHEAST_2);
         });
     }
 

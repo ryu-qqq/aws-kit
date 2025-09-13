@@ -195,7 +195,8 @@ class ParameterStoreServiceTest {
         CompletableFuture<Map<String, String>> result = parameterStoreService.getParameters(parameterNames, true);
 
         // Then
-        assertThat(result).succeedsWithin(java.time.Duration.ofSeconds(1))
+        assertThat(result).succeedsWithin(java.time.Duration.ofSeconds(1));
+        assertThat(result.join())
                 .hasSize(2)
                 .containsEntry("/app/secret/key", "secret123")
                 .containsEntry("/app/secret/token", "token456");
@@ -264,7 +265,8 @@ class ParameterStoreServiceTest {
                 parameterStoreService.getParametersByPath(PARAMETER_PATH, true, true);
 
         // Then
-        assertThat(result).succeedsWithin(java.time.Duration.ofSeconds(1))
+        assertThat(result).succeedsWithin(java.time.Duration.ofSeconds(1));
+        assertThat(result.join())
                 .hasSize(2)
                 .containsEntry("/app/database/config/host", "localhost")
                 .containsEntry("/app/database/secrets/password", "secret123");
@@ -510,7 +512,7 @@ class ParameterStoreServiceTest {
     @DisplayName("Should handle parameter not found error")
     void shouldHandleParameterNotFoundError() {
         // Given
-        ParameterNotFound notFoundException = ParameterNotFound.builder()
+        ParameterNotFoundException notFoundException = ParameterNotFoundException.builder()
                 .message("Parameter not found")
                 .build();
 
@@ -535,7 +537,7 @@ class ParameterStoreServiceTest {
     void shouldHandleInvalidParameterErrorWhenGettingMultiple() {
         // Given
         List<String> parameterNames = Arrays.asList("/valid/param", "/invalid/param");
-        InvalidKeyId invalidKeyException = InvalidKeyId.builder()
+        InvalidKeyIdException invalidKeyException = InvalidKeyIdException.builder()
                 .message("Invalid parameter")
                 .build();
 
@@ -553,7 +555,7 @@ class ParameterStoreServiceTest {
     @DisplayName("Should handle access denied error when putting parameter")
     void shouldHandleAccessDeniedErrorWhenPuttingParameter() {
         // Given
-        ParameterAlreadyExists alreadyExistsException = ParameterAlreadyExists.builder()
+        ParameterAlreadyExistsException alreadyExistsException = ParameterAlreadyExistsException.builder()
                 .message("Parameter already exists")
                 .build();
 
@@ -671,7 +673,7 @@ class ParameterStoreServiceTest {
         // When - Execute batch operations
         List<CompletableFuture<String>> futures = parameterNames.stream()
                 .map(name -> parameterStoreService.getParameter(name))
-                .collect(java.util.stream.Collectors.toList());
+                .toList();
 
         CompletableFuture<Void> allFutures = CompletableFuture.allOf(
                 futures.toArray(new CompletableFuture[0]));

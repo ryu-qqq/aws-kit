@@ -10,6 +10,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.testcontainers.containers.localstack.LocalStackContainer;
 import org.testcontainers.containers.localstack.LocalStackContainer.Service;
 import org.testcontainers.junit.jupiter.Container;
@@ -40,8 +41,12 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 /**
  * DynamoDB Transaction 기능에 대한 통합 테스트
  * LocalStack을 사용한 실제 DynamoDB 환경 테스트
+ *
+ * These tests require Docker to be available and running.
+ * Set INTEGRATION_TESTS=enabled to run these tests.
  */
 @Testcontainers
+@EnabledIfEnvironmentVariable(named = "INTEGRATION_TESTS", matches = "enabled")
 @DisplayName("DynamoDB Transaction Integration Tests")
 class DynamoDbTransactionIntegrationTest {
 

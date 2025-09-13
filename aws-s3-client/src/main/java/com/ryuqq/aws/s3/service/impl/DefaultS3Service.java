@@ -3,8 +3,8 @@ package com.ryuqq.aws.s3.service.impl;
 import com.ryuqq.aws.s3.properties.S3Properties;
 import com.ryuqq.aws.s3.service.S3Service;
 import com.ryuqq.aws.s3.types.*;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import software.amazon.awssdk.core.BytesWrapper;
@@ -16,6 +16,7 @@ import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
 import software.amazon.awssdk.transfer.s3.S3TransferManager;
 import software.amazon.awssdk.transfer.s3.model.*;
+import software.amazon.awssdk.transfer.s3.progress.TransferListener;
 
 import java.nio.file.Path;
 import java.time.Duration;
@@ -28,15 +29,26 @@ import java.util.stream.Collectors;
 /**
  * Simplified S3 service implementation - provides essential operations only
  */
-@Slf4j
 @Service
-@RequiredArgsConstructor
 public class DefaultS3Service implements S3Service {
+
+    private static final Logger log = LoggerFactory.getLogger(DefaultS3Service.class);
 
     private final S3AsyncClient s3AsyncClient;
     private final S3TransferManager transferManager;
     private final S3Presigner s3Presigner;
     private final S3Properties s3Properties;
+
+    public DefaultS3Service(
+            S3AsyncClient s3AsyncClient,
+            S3TransferManager transferManager,
+            S3Presigner s3Presigner,
+            S3Properties s3Properties) {
+        this.s3AsyncClient = s3AsyncClient;
+        this.transferManager = transferManager;
+        this.s3Presigner = s3Presigner;
+        this.s3Properties = s3Properties;
+    }
 
     @Override
     public CompletableFuture<String> uploadFile(String bucket, String key, Path file) {
@@ -129,19 +141,19 @@ public class DefaultS3Service implements S3Service {
                 .build();
         
         return s3AsyncClient.headObject(request)
-                .thenApply(response -> S3Metadata.builder()
-                        .contentLength(response.contentLength())
-                        .contentType(response.contentType())
-                        .eTag(response.eTag())
-                        .lastModified(response.lastModified())
-                        .versionId(response.versionId())
-                        .storageClass(response.storageClassAsString())
-                        .serverSideEncryption(response.serverSideEncryptionAsString())
-                        .userMetadata(response.metadata())
-                        .cacheControl(response.cacheControl())
-                        .contentEncoding(response.contentEncoding())
-                        .contentDisposition(response.contentDisposition())
-                        .build());
+                .thenApply(response -> new S3Metadata(
+                        response.contentLength(),
+                        response.contentType(),
+                        response.eTag(),
+                        response.lastModified(),
+                        response.versionId(),
+                        response.storageClassAsString(),
+                        response.serverSideEncryptionAsString(),
+                        response.metadata(),
+                        response.cacheControl(),
+                        response.contentEncoding(),
+                        response.contentDisposition()
+                ));
     }
     
     @Override
@@ -372,11 +384,7 @@ public class DefaultS3Service implements S3Service {
                 .build();
         
         return s3AsyncClient.getObjectTagging(request)
-                .thenApply(response -> {
-                    Set<Tag> awsTags = response.tagSet().stream()
-                            .collect(Collectors.toSet());
-                    return S3Tag.fromAwsTags(awsTags);
-                });
+                .thenApply(response -> S3Tag.fromAwsTags(response.tagSet()));
     }
     
     @Override
@@ -401,7 +409,7 @@ public class DefaultS3Service implements S3Service {
          * Presigned URL 생성 시 기본 만료 시간을 사용할 수 있습니다.
          * null인 경우 설정된 기본값을 사용합니다.
          */
-        Duration effectiveExpiration = expiration != null ? expiration : s3Properties.getPresignedUrlExpiry();
+        Duration effectiveExpiration = expiration != null ? expiration : s3Properties.presignedUrlExpiry();
         
         return CompletableFuture.supplyAsync(() -> {
             GetObjectRequest getObjectRequest = GetObjectRequest.builder()

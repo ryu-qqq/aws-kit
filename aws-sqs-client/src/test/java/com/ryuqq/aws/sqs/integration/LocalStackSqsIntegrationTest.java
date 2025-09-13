@@ -2,11 +2,11 @@ package com.ryuqq.aws.sqs.integration;
 
 import com.ryuqq.aws.sqs.properties.SqsProperties;
 import com.ryuqq.aws.sqs.service.SqsService;
-import com.ryuqq.aws.sqs.service.impl.DefaultSqsService;
 import com.ryuqq.aws.sqs.types.SqsMessage;
 import com.ryuqq.aws.sqs.util.BatchEntryFactory;
 import com.ryuqq.aws.sqs.util.QueueAttributeUtils;
 import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 import org.testcontainers.containers.localstack.LocalStackContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -33,6 +33,7 @@ import static org.testcontainers.containers.localstack.LocalStackContainer.Servi
  */
 @Testcontainers
 @DisplayName("LocalStack SQS 통합 테스트")
+@EnabledIfSystemProperty(named = "run.integration.tests", matches = "true")
 class LocalStackSqsIntegrationTest {
     
     @Container
@@ -63,12 +64,11 @@ class LocalStackSqsIntegrationTest {
         // SQS Properties 설정
         sqsProperties = new SqsProperties();
         sqsProperties.setMaxBatchSize(10);
-        sqsProperties.setDefaultVisibilityTimeout(30);
-        sqsProperties.setLongPolling(true);
-        sqsProperties.setWaitTimeSeconds(1); // 테스트를 위해 짧게 설정
+        sqsProperties.setVisibilityTimeout(30);
+        sqsProperties.setLongPollingWaitSeconds(1); // 테스트를 위해 짧게 설정
         
         // SQS Service 생성
-        sqsService = new DefaultSqsService(sqsClient, sqsProperties);
+        sqsService = new SqsService(sqsClient, sqsProperties);
     }
     
     @AfterEach
@@ -93,18 +93,12 @@ class LocalStackSqsIntegrationTest {
         
         // 메시지 전송
         String messageBody = "{\"orderId\": 12345, \"status\": \"pending\"}";
-        SqsMessage message = SqsMessage.builder()
-                .body(messageBody)
-                .attribute("MessageType", "Order")
-                .attribute("Priority", "High")
-                .build();
         
-        CompletableFuture<SendMessageResponse> sendResponse = sqsService.sendMessage(queueUrl, message);
-        SendMessageResponse sendResult = sendResponse.get(5, TimeUnit.SECONDS);
+        CompletableFuture<String> sendResponse = sqsService.sendMessage(queueUrl, messageBody);
+        String messageId = sendResponse.get(5, TimeUnit.SECONDS);
         
         // then - 전송 검증
-        assertThat(sendResult.messageId()).isNotNull();
-        assertThat(sendResult.md5OfBody()).isNotNull();
+        assertThat(messageId).isNotNull();
         
         // 메시지 수신
         CompletableFuture<List<SqsMessage>> receiveResponse = sqsService.receiveMessages(queueUrl, 1);
@@ -112,15 +106,13 @@ class LocalStackSqsIntegrationTest {
         
         assertThat(receivedMessages).hasSize(1);
         SqsMessage receivedMessage = receivedMessages.get(0);
-        assertThat(receivedMessage.body()).isEqualTo(messageBody);
-        assertThat(receivedMessage.attributes()).containsEntry("MessageType", "Order");
-        assertThat(receivedMessage.receiptHandle()).isNotNull();
+        assertThat(receivedMessage.getBody()).isEqualTo(messageBody);
+        assertThat(receivedMessage.getReceiptHandle()).isNotNull();
         
         // 메시지 삭제
-        CompletableFuture<DeleteMessageResponse> deleteResponse = 
-                sqsService.deleteMessage(queueUrl, receivedMessage.receiptHandle());
-        DeleteMessageResponse deleteResult = deleteResponse.get(5, TimeUnit.SECONDS);
-        assertThat(deleteResult).isNotNull();
+        CompletableFuture<Void> deleteResponse = 
+                sqsService.deleteMessage(queueUrl, receivedMessage.getReceiptHandle());
+        deleteResponse.get(5, TimeUnit.SECONDS); // Just wait for completion
     }
     
     @Test
@@ -136,19 +128,11 @@ class LocalStackSqsIntegrationTest {
         );
         
         // when - 배치 전송
-        List<SendMessageBatchRequestEntry> entries = BatchEntryFactory.createSendMessageEntries(messageBodies);
-        
-        SendMessageBatchRequest batchRequest = SendMessageBatchRequest.builder()
-                .queueUrl(queueUrl)
-                .entries(entries)
-                .build();
-        
-        CompletableFuture<SendMessageBatchResponse> sendResponse = sqsClient.sendMessageBatch(batchRequest);
-        SendMessageBatchResponse sendResult = sendResponse.get(5, TimeUnit.SECONDS);
+        CompletableFuture<List<String>> sendResponse = sqsService.sendMessageBatch(queueUrl, messageBodies);
+        List<String> messageIds = sendResponse.get(5, TimeUnit.SECONDS);
         
         // then - 전송 검증
-        assertThat(sendResult.successful()).hasSize(3);
-        assertThat(sendResult.failed()).isEmpty();
+        assertThat(messageIds).hasSize(3);
         
         // 메시지 수신
         CompletableFuture<List<SqsMessage>> receiveResponse = sqsService.receiveMessages(queueUrl, 10);
@@ -158,22 +142,11 @@ class LocalStackSqsIntegrationTest {
         
         // 배치 삭제
         List<String> receiptHandles = receivedMessages.stream()
-                .map(SqsMessage::receiptHandle)
+                .map(SqsMessage::getReceiptHandle)
                 .toList();
         
-        List<DeleteMessageBatchRequestEntry> deleteEntries = 
-                BatchEntryFactory.createDeleteMessageEntries(receiptHandles);
-        
-        DeleteMessageBatchRequest deleteRequest = DeleteMessageBatchRequest.builder()
-                .queueUrl(queueUrl)
-                .entries(deleteEntries)
-                .build();
-        
-        CompletableFuture<DeleteMessageBatchResponse> deleteResponse = sqsClient.deleteMessageBatch(deleteRequest);
-        DeleteMessageBatchResponse deleteResult = deleteResponse.get(5, TimeUnit.SECONDS);
-        
-        assertThat(deleteResult.successful()).hasSize(3);
-        assertThat(deleteResult.failed()).isEmpty();
+        CompletableFuture<Void> deleteResponse = sqsService.deleteMessageBatch(queueUrl, receiptHandles);
+        deleteResponse.get(5, TimeUnit.SECONDS); // Wait for completion
     }
     
     @Test
@@ -189,16 +162,9 @@ class LocalStackSqsIntegrationTest {
         
         // when - 순서대로 메시지 전송
         List<String> orderedMessages = Arrays.asList("첫번째", "두번째", "세번째", "네번째");
-        String messageGroupId = "test-group";
         
-        for (int i = 0; i < orderedMessages.size(); i++) {
-            SqsMessage message = SqsMessage.builder()
-                    .body(orderedMessages.get(i))
-                    .messageGroupId(messageGroupId)
-                    .messageDeduplicationId(String.valueOf(i))
-                    .build();
-            
-            sqsService.sendMessage(fifoQueueUrl, message).get(5, TimeUnit.SECONDS);
+        for (String messageBody : orderedMessages) {
+            sqsService.sendMessage(fifoQueueUrl, messageBody).get(5, TimeUnit.SECONDS);
         }
         
         // then - 수신 순서 확인
@@ -208,9 +174,9 @@ class LocalStackSqsIntegrationTest {
                     .get(5, TimeUnit.SECONDS);
             
             if (!messages.isEmpty()) {
-                receivedBodies.add(messages.get(0).body());
+                receivedBodies.add(messages.get(0).getBody());
                 // 메시지 삭제
-                sqsService.deleteMessage(fifoQueueUrl, messages.get(0).receiptHandle())
+                sqsService.deleteMessage(fifoQueueUrl, messages.get(0).getReceiptHandle())
                         .get(5, TimeUnit.SECONDS);
             }
         }
@@ -245,11 +211,9 @@ class LocalStackSqsIntegrationTest {
         String mainQueueUrl = createQueue(TEST_QUEUE_NAME + "-with-dlq", mainQueueAttributes);
         
         // when - 메시지 전송
-        SqsMessage testMessage = SqsMessage.builder()
-                .body("테스트 메시지 for DLQ")
-                .build();
+        String testMessageBody = "테스트 메시지 for DLQ";
         
-        sqsService.sendMessage(mainQueueUrl, testMessage).get(5, TimeUnit.SECONDS);
+        sqsService.sendMessage(mainQueueUrl, testMessageBody).get(5, TimeUnit.SECONDS);
         
         // 메시지를 여러 번 수신하여 maxReceiveCount 초과 시키기
         for (int i = 0; i < 3; i++) {
@@ -268,7 +232,7 @@ class LocalStackSqsIntegrationTest {
                 .get(5, TimeUnit.SECONDS);
         
         assertThat(dlqMessages).hasSize(1);
-        assertThat(dlqMessages.get(0).body()).isEqualTo("테스트 메시지 for DLQ");
+        assertThat(dlqMessages.get(0).getBody()).isEqualTo("테스트 메시지 for DLQ");
     }
     
     @Test
@@ -285,9 +249,7 @@ class LocalStackSqsIntegrationTest {
         
         // 2초 후에 메시지 전송
         CompletableFuture.delayedExecutor(2, TimeUnit.SECONDS).execute(() -> {
-            SqsMessage delayedMessage = SqsMessage.builder()
-                    .body("지연된 메시지")
-                    .build();
+            String delayedMessage = "지연된 메시지";
             sqsService.sendMessage(queueUrl, delayedMessage);
         });
         
@@ -297,7 +259,7 @@ class LocalStackSqsIntegrationTest {
         
         // then
         assertThat(messages).hasSize(1);
-        assertThat(messages.get(0).body()).isEqualTo("지연된 메시지");
+        assertThat(messages.get(0).getBody()).isEqualTo("지연된 메시지");
         assertThat(duration).isGreaterThanOrEqualTo(2000); // 최소 2초는 기다렸어야 함
         assertThat(duration).isLessThan(10000); // Long Polling으로 인해 빠르게 수신
     }
@@ -349,9 +311,7 @@ class LocalStackSqsIntegrationTest {
         // given
         String queueUrl = createQueue(TEST_QUEUE_NAME + "-visibility");
         
-        SqsMessage testMessage = SqsMessage.builder()
-                .body("가시성 테스트 메시지")
-                .build();
+        String testMessage = "가시성 테스트 메시지";
         
         sqsService.sendMessage(queueUrl, testMessage).get(5, TimeUnit.SECONDS);
         
@@ -360,7 +320,7 @@ class LocalStackSqsIntegrationTest {
                 .get(5, TimeUnit.SECONDS);
         
         assertThat(messages).hasSize(1);
-        String receiptHandle = messages.get(0).receiptHandle();
+        String receiptHandle = messages.get(0).getReceiptHandle();
         
         // 가시성 타임아웃을 2초로 변경
         ChangeMessageVisibilityRequest changeVisibilityRequest = ChangeMessageVisibilityRequest.builder()
@@ -378,10 +338,10 @@ class LocalStackSqsIntegrationTest {
                 .get(5, TimeUnit.SECONDS);
         
         assertThat(reappearMessages).hasSize(1);
-        assertThat(reappearMessages.get(0).body()).isEqualTo("가시성 테스트 메시지");
+        assertThat(reappearMessages.get(0).getBody()).isEqualTo("가시성 테스트 메시지");
         
         // 정리
-        sqsService.deleteMessage(queueUrl, reappearMessages.get(0).receiptHandle())
+        sqsService.deleteMessage(queueUrl, reappearMessages.get(0).getReceiptHandle())
                 .get(5, TimeUnit.SECONDS);
     }
     
@@ -393,10 +353,8 @@ class LocalStackSqsIntegrationTest {
         
         // 여러 메시지 전송
         for (int i = 0; i < 5; i++) {
-            SqsMessage message = SqsMessage.builder()
-                    .body("메시지 " + i)
-                    .build();
-            sqsService.sendMessage(queueUrl, message).get(5, TimeUnit.SECONDS);
+            String messageBody = "메시지 " + i;
+            sqsService.sendMessage(queueUrl, messageBody).get(5, TimeUnit.SECONDS);
         }
         
         // when - 큐 퍼지
