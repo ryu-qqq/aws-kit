@@ -162,8 +162,8 @@ class SecretsServiceTest {
         // Given
         Map<String, Object> expectedMap = new HashMap<>();
         expectedMap.put("username", "testuser");
-        expectedMap.put("password", "testvalue123");
-        String jsonValue = "{\"username\":\"testuser\",\"password\":\"testvalue123\"}";
+        expectedMap.put("password", "fake-test-pwd");
+        String jsonValue = "{\"username\":\"testuser\",\"password\":\"fake-test-pwd\"}";
 
         when(cacheManager.get(eq(SECRET_NAME), any(Function.class)))
                 .thenReturn(CompletableFuture.completedFuture(jsonValue));
@@ -180,8 +180,8 @@ class SecretsServiceTest {
     @DisplayName("Should parse secret as specific type")
     void shouldParseSecretAsSpecificType() {
         // Given
-        TestCredentials expected = new TestCredentials("testuser", "testvalue123");
-        String jsonValue = "{\"username\":\"testuser\",\"password\":\"testvalue123\"}";
+        TestCredentials expected = new TestCredentials("testuser", "fake-test-pwd");
+        String jsonValue = "{\"username\":\"testuser\",\"password\":\"fake-test-pwd\"}";
 
         when(cacheManager.get(eq(SECRET_NAME), any(Function.class)))
                 .thenReturn(CompletableFuture.completedFuture(jsonValue));
@@ -245,7 +245,7 @@ class SecretsServiceTest {
                 ArgumentCaptor.forClass(CreateSecretRequest.class);
         verify(secretsManagerClient).createSecret(requestCaptor.capture());
         assertThat(requestCaptor.getValue().secretString()).contains("admin");
-        assertThat(requestCaptor.getValue().secretString()).contains("secret123");
+        assertThat(requestCaptor.getValue().secretString()).contains("fake-secret-val");
     }
 
     @Test

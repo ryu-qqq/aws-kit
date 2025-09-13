@@ -89,7 +89,7 @@ class ParameterStoreIntegrationTest {
     void putParameter_보안문자열파라미터_생성성공() {
         // Given
         String parameterName = TEST_APP_PREFIX + "/database/password";
-        String parameterValue = "super-secure-password-123";
+        String parameterValue = "fake-integration-password";
 
         // When
         CompletableFuture<Long> future = parameterStoreService.putSecureParameter(
@@ -141,7 +141,7 @@ class ParameterStoreIntegrationTest {
         
         // Then
         String value = future.join();
-        assertThat(value).isEqualTo("super-secure-password-123");
+        assertThat(value).isEqualTo("fake-integration-password");
     }
 
     @Test
@@ -224,7 +224,7 @@ class ParameterStoreIntegrationTest {
         Map<String, String> parameters = future.join();
         assertThat(parameters).hasSize(3);
         assertThat(parameters).containsEntry(TEST_APP_PREFIX + "/database/username", "app_user");
-        assertThat(parameters).containsEntry(TEST_APP_PREFIX + "/database/password", "super-secure-password-123");
+        assertThat(parameters).containsEntry(TEST_APP_PREFIX + "/database/password", "fake-integration-password");
         assertThat(parameters).containsEntry(TEST_APP_PREFIX + "/redis/password", "redis_secure_pass");
     }
 
@@ -273,7 +273,7 @@ class ParameterStoreIntegrationTest {
         assertThat(allParams).hasSizeGreaterThanOrEqualTo(9); // Including secure parameters
         
         // Verify secure parameters are included and decrypted
-        assertThat(allParams).containsEntry(TEST_APP_PREFIX + "/database/password", "super-secure-password-123");
+        assertThat(allParams).containsEntry(TEST_APP_PREFIX + "/database/password", "fake-integration-password");
         assertThat(allParams).containsEntry(TEST_APP_PREFIX + "/redis/password", "redis_secure_pass");
     }
 

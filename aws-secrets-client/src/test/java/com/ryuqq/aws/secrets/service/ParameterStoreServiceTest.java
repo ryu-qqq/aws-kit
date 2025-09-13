@@ -180,8 +180,8 @@ class ParameterStoreServiceTest {
         // Given
         List<String> parameterNames = Arrays.asList("/app/secret/key", "/app/secret/token");
         List<Parameter> parameters = Arrays.asList(
-                Parameter.builder().name("/app/secret/key").value("secret123").type(ParameterType.SECURE_STRING).build(),
-                Parameter.builder().name("/app/secret/token").value("token456").type(ParameterType.SECURE_STRING).build()
+                Parameter.builder().name("/app/secret/key").value("fake-secret-value").type(ParameterType.SECURE_STRING).build(),
+                Parameter.builder().name("/app/secret/token").value("fake-token-value").type(ParameterType.SECURE_STRING).build()
         );
 
         GetParametersResponse mockResponse = GetParametersResponse.builder()
@@ -198,8 +198,8 @@ class ParameterStoreServiceTest {
         assertThat(result).succeedsWithin(java.time.Duration.ofSeconds(1));
         assertThat(result.join())
                 .hasSize(2)
-                .containsEntry("/app/secret/key", "secret123")
-                .containsEntry("/app/secret/token", "token456");
+                .containsEntry("/app/secret/key", "fake-secret-value")
+                .containsEntry("/app/secret/token", "fake-token-value");
 
         ArgumentCaptor<GetParametersRequest> requestCaptor = 
                 ArgumentCaptor.forClass(GetParametersRequest.class);
@@ -250,7 +250,7 @@ class ParameterStoreServiceTest {
         // Given
         List<Parameter> parameters = Arrays.asList(
                 Parameter.builder().name("/app/database/config/host").value("localhost").build(),
-                Parameter.builder().name("/app/database/secrets/password").value("secret123").build()
+                Parameter.builder().name("/app/database/secrets/password").value("fake-db-secret").build()
         );
 
         GetParametersByPathResponse mockResponse = GetParametersByPathResponse.builder()
@@ -269,7 +269,7 @@ class ParameterStoreServiceTest {
         assertThat(result.join())
                 .hasSize(2)
                 .containsEntry("/app/database/config/host", "localhost")
-                .containsEntry("/app/database/secrets/password", "secret123");
+                .containsEntry("/app/database/secrets/password", "fake-db-secret");
 
         ArgumentCaptor<GetParametersByPathRequest> requestCaptor = 
                 ArgumentCaptor.forClass(GetParametersByPathRequest.class);
