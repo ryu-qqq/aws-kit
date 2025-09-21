@@ -515,4 +515,84 @@ public interface S3Service {
      * - 브라우저 캐시에 저장될 수 있음
      */
     CompletableFuture<String> generatePresignedUrl(String bucket, String key, Duration expiration);
+
+    /**
+     * Presigned URL 생성 (업로드용 PUT 요청)
+     *
+     * 한국어 설명:
+     * 클라이언트에서 직접 파일을 업로드할 수 있는 서명된 PUT URL을 생성합니다.
+     * AWS 자격 증명 없이도 지정된 시간 동안 파일을 업로드할 수 있습니다.
+     *
+     * 적용 사례:
+     * - 웹 프론트엔드에서 직접 파일 업로드
+     * - 모바일 앱에서 이미지/동영상 업로드
+     * - 서버 부하 감소 (파일이 서버를 거치지 않음)
+     * - 대용량 파일 업로드 시 효율성
+     *
+     * @param bucket S3 버킷 이름
+     * @param key 업로드할 S3 객체 키
+     * @param expiration URL 만료 시간 (예: Duration.ofMinutes(15))
+     * @param contentType MIME 타입 (예: "image/jpeg", "application/pdf")
+     * @return CompletableFuture<String> - 생성된 presigned PUT URL
+     *
+     * 사용 예제:
+     * <pre>{@code
+     * // 이미지 업로드용 15분 유효 URL 생성
+     * s3Service.generatePresignedPutUrl("my-bucket", "images/photo-" + UUID.randomUUID(),
+     *                                   Duration.ofMinutes(15), "image/jpeg")
+     *     .thenAccept(uploadUrl -> {
+     *         // 클라이언트에게 업로드 URL 전달
+     *         response.put("uploadUrl", uploadUrl);
+     *         response.put("method", "PUT");
+     *     });
+     *
+     * // JavaScript 클라이언트에서 사용
+     * fetch(uploadUrl, {
+     *     method: 'PUT',
+     *     headers: { 'Content-Type': 'image/jpeg' },
+     *     body: fileBlob
+     * }).then(response => console.log('Upload complete'));
+     * }
+     * </pre>
+     *
+     * 보안 고려사항:
+     * - Content-Type 제한으로 파일 형식 검증
+     * - 짧은 만료 시간 설정 (5-15분 권장)
+     * - 파일 크기 제한은 별도 검증 필요
+     * - 업로드 완료 후 서버에서 검증 로직 구현
+     */
+    CompletableFuture<String> generatePresignedPutUrl(String bucket, String key, Duration expiration, String contentType);
+
+    /**
+     * Presigned URL 생성 (업로드용 PUT 요청, 메타데이터 포함)
+     *
+     * 한국어 설명:
+     * 메타데이터와 스토리지 클래스를 지정하여 업로드용 Presigned URL을 생성합니다.
+     *
+     * @param bucket S3 버킷 이름
+     * @param key 업로드할 S3 객체 키
+     * @param expiration URL 만료 시간
+     * @param contentType MIME 타입
+     * @param metadata 사용자 정의 메타데이터 (선택사항)
+     * @param storageClass 스토리지 클래스 (선택사항)
+     * @return CompletableFuture<String> - 생성된 presigned PUT URL
+     *
+     * 사용 예제:
+     * <pre>{@code
+     * Map<String, String> metadata = Map.of(
+     *     "user-id", "12345",
+     *     "original-name", "vacation-photo.jpg"
+     * );
+     *
+     * s3Service.generatePresignedPutUrl("my-bucket", "uploads/" + fileName,
+     *                                   Duration.ofMinutes(10), "image/jpeg",
+     *                                   metadata, S3StorageClass.STANDARD_IA)
+     *     .thenAccept(url -> sendToClient(url));
+     * }
+     * </pre>
+     */
+    CompletableFuture<String> generatePresignedPutUrl(String bucket, String key, Duration expiration,
+                                                      String contentType, Map<String, String> metadata,
+                                                      S3StorageClass storageClass);
+
 }

@@ -14,6 +14,7 @@ import software.amazon.awssdk.services.s3.S3AsyncClient;
 import software.amazon.awssdk.services.s3.model.*;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
+import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest;
 import software.amazon.awssdk.transfer.s3.S3TransferManager;
 import software.amazon.awssdk.transfer.s3.model.*;
 import software.amazon.awssdk.transfer.s3.progress.TransferListener;
@@ -425,6 +426,69 @@ public class DefaultS3Service implements S3Service {
             return s3Presigner.presignGetObject(presignRequest).url().toString();
         });
     }
+
+    @Override
+    public CompletableFuture<String> generatePresignedPutUrl(String bucket, String key, Duration expiration, String contentType) {
+        Duration effectiveExpiration = expiration != null ? expiration : s3Properties.presignedUrlExpiry();
+
+        return CompletableFuture.supplyAsync(() -> {
+            PutObjectRequest.Builder requestBuilder = PutObjectRequest.builder()
+                    .bucket(bucket)
+                    .key(key);
+
+            // Content-Type이 지정된 경우 추가
+            if (contentType != null && !contentType.trim().isEmpty()) {
+                requestBuilder.contentType(contentType);
+            }
+
+            PutObjectRequest putObjectRequest = requestBuilder.build();
+
+            PutObjectPresignRequest presignRequest = PutObjectPresignRequest.builder()
+                    .signatureDuration(effectiveExpiration)
+                    .putObjectRequest(putObjectRequest)
+                    .build();
+
+            return s3Presigner.presignPutObject(presignRequest).url().toString();
+        });
+    }
+
+    @Override
+    public CompletableFuture<String> generatePresignedPutUrl(String bucket, String key, Duration expiration,
+                                                            String contentType, Map<String, String> metadata,
+                                                            S3StorageClass storageClass) {
+        Duration effectiveExpiration = expiration != null ? expiration : s3Properties.presignedUrlExpiry();
+
+        return CompletableFuture.supplyAsync(() -> {
+            PutObjectRequest.Builder requestBuilder = PutObjectRequest.builder()
+                    .bucket(bucket)
+                    .key(key);
+
+            // Content-Type 설정
+            if (contentType != null && !contentType.trim().isEmpty()) {
+                requestBuilder.contentType(contentType);
+            }
+
+            // 메타데이터 설정
+            if (metadata != null && !metadata.isEmpty()) {
+                requestBuilder.metadata(metadata);
+            }
+
+            // 스토리지 클래스 설정
+            if (storageClass != null) {
+                requestBuilder.storageClass(storageClass.toAwsStorageClass());
+            }
+
+            PutObjectRequest putObjectRequest = requestBuilder.build();
+
+            PutObjectPresignRequest presignRequest = PutObjectPresignRequest.builder()
+                    .signatureDuration(effectiveExpiration)
+                    .putObjectRequest(putObjectRequest)
+                    .build();
+
+            return s3Presigner.presignPutObject(presignRequest).url().toString();
+        });
+    }
+
 
     /*
      * 구현 노트: uploadLargeFile 메서드를 별도로 구현하지 않음
