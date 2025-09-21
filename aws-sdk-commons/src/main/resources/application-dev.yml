@@ -19,7 +19,7 @@ logging:
   level:
     com.ryuqq.aws: DEBUG
     software.amazon.awssdk: INFO
-    software.amazon.awssdk.request: DEBUG
+    software.amazon.awssdk.request: WARN
     org.springframework.web: DEBUG
     root: INFO
 

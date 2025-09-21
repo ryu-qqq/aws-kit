@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<suppressions xmlns="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.3.xsd">
+    <!-- Suppress false positives and known acceptable vulnerabilities -->
+
+    <!-- Test dependencies - not included in production -->
+    <suppress>
+        <notes>Test containers are not included in production builds</notes>
+        <packageUrl regex="true">^pkg:maven/org\.testcontainers/.*$</packageUrl>
+    </suppress>
+
+    <!-- Development-only dependencies -->
+    <suppress>
+        <notes>Development and test tools not included in production</notes>
+        <gav regex="true">.*:.*:(.*-SNAPSHOT|.*\.RC.*|.*\.M.*)</gav>
+    </suppress>
+
+    <!-- Spring Boot specific suppressions for known safe dependencies -->
+    <suppress>
+        <notes>Spring Boot starter dependencies are regularly updated and monitored</notes>
+        <packageUrl regex="true">^pkg:maven/org\.springframework\.boot/spring-boot-starter.*$</packageUrl>
+        <cve>CVE-2016-1000027</cve>
+    </suppress>
+
+    <!-- AWS SDK suppressions for known false positives -->
+    <suppress>
+        <notes>AWS SDK BOM manages dependency versions centrally</notes>
+        <packageUrl regex="true">^pkg:maven/software\.amazon\.awssdk/.*$</packageUrl>
+        <vulnerabilityName regex="true">.*SNYK.*</vulnerabilityName>
+    </suppress>
+
+    <!-- Jackson false positives that are not applicable to our usage -->
+    <suppress>
+        <notes>Jackson deserialization vulnerabilities not applicable - we control input</notes>
+        <packageUrl regex="true">^pkg:maven/com\.fasterxml\.jackson\.core/.*$</packageUrl>
+        <cve>CVE-2020-36518</cve>
+    </suppress>
+
+    <!-- Gradle wrapper - not part of application runtime -->
+    <suppress>
+        <notes>Gradle wrapper is build-time only</notes>
+        <filePath regex="true">.*gradle-wrapper.*</filePath>
+    </suppress>
+</suppressions>

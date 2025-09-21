@@ -71,4 +71,4 @@ logging:
   level:
     com.ryuqq.aws.dynamodb: DEBUG
     software.amazon.awssdk.services.dynamodb: DEBUG
-    software.amazon.awssdk.request: DEBUG
+    software.amazon.awssdk.request: WARN

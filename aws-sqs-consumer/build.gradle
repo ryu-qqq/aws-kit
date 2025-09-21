@@ -4,8 +4,8 @@ dependencies {
     api project(':aws-sqs-client')
     
     // Spring Boot - required for annotation processing and lifecycle management
-    implementation 'org.springframework.boot:spring-boot-starter'
-    implementation 'org.springframework.boot:spring-boot-autoconfigure'
+    compileOnly 'org.springframework.boot:spring-boot-starter'
+    compileOnly 'org.springframework.boot:spring-boot-autoconfigure'
     
     // Additional Spring support
     implementation 'org.springframework:spring-context'
