@@ -382,6 +382,60 @@ class S3ServiceIntegrationTest {
             });
         }
 
+        @Override
+        public CompletableFuture<String> generatePresignedPutUrl(String bucket, String key, Duration expiration, String contentType) {
+            return CompletableFuture.supplyAsync(() -> {
+                software.amazon.awssdk.services.s3.model.PutObjectRequest.Builder requestBuilder =
+                        software.amazon.awssdk.services.s3.model.PutObjectRequest.builder()
+                                .bucket(bucket)
+                                .key(key);
+
+                if (contentType != null && !contentType.trim().isEmpty()) {
+                    requestBuilder.contentType(contentType);
+                }
+
+                software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest presignRequest =
+                        software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest.builder()
+                                .signatureDuration(expiration)
+                                .putObjectRequest(requestBuilder.build())
+                                .build();
+
+                return s3Presigner.presignPutObject(presignRequest).url().toString();
+            });
+        }
+
+        @Override
+        public CompletableFuture<String> generatePresignedPutUrl(String bucket, String key, Duration expiration,
+                                                                String contentType, java.util.Map<String, String> metadata,
+                                                                com.ryuqq.aws.s3.types.S3StorageClass storageClass) {
+            return CompletableFuture.supplyAsync(() -> {
+                software.amazon.awssdk.services.s3.model.PutObjectRequest.Builder requestBuilder =
+                        software.amazon.awssdk.services.s3.model.PutObjectRequest.builder()
+                                .bucket(bucket)
+                                .key(key);
+
+                if (contentType != null && !contentType.trim().isEmpty()) {
+                    requestBuilder.contentType(contentType);
+                }
+
+                if (metadata != null && !metadata.isEmpty()) {
+                    requestBuilder.metadata(metadata);
+                }
+
+                if (storageClass != null) {
+                    requestBuilder.storageClass(storageClass.toAwsStorageClass());
+                }
+
+                software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest presignRequest =
+                        software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest.builder()
+                                .signatureDuration(expiration)
+                                .putObjectRequest(requestBuilder.build())
+                                .build();
+
+                return s3Presigner.presignPutObject(presignRequest).url().toString();
+            });
+        }
+
         // 추가된 메서드들의 기본 구현 (테스트에 필요한 것만)
         @Override
         public CompletableFuture<com.ryuqq.aws.s3.types.S3Metadata> headObject(String bucket, String key) {
