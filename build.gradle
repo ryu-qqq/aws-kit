@@ -3,6 +3,7 @@ plugins {
     id 'maven-publish'
     id 'org.springframework.boot' version "${springBootVersion}" apply false
     id 'io.spring.dependency-management' version '1.1.6' apply false
+    id 'org.owasp.dependencycheck' version '8.4.3'
 }
 
 allprojects {
@@ -183,4 +184,26 @@ publishing {
             }
         }
     }
+}
+
+// OWASP Dependency Check Configuration
+dependencyCheck {
+    analyzers {
+        experimentalEnabled = true
+        assemblyEnabled = false
+        nuspecEnabled = false
+        nugetconfEnabled = false
+    }
+    formats = ['HTML', 'JSON', 'XML']
+    suppressionFile = 'owasp-suppressions.xml'
+    failBuildOnCVSS = 7.0
+    skipConfigurations = ['developmentOnly', 'testImplementation', 'testRuntimeOnly']
+
+    // Scan all subprojects
+    scanConfigurations = ['runtimeClasspath']
+}
+
+// Apply OWASP to all subprojects
+subprojects {
+    apply plugin: 'org.owasp.dependencycheck'
 }

@@ -64,7 +64,7 @@ jacocoTestCoverageVerification {
 
 dependencies {
     // AWS SDK
-    implementation platform('software.amazon.awssdk:bom:2.28.0')
+    implementation platform("software.amazon.awssdk:bom:${awsSdkVersion}")
     implementation 'software.amazon.awssdk:secretsmanager'
     implementation 'software.amazon.awssdk:ssm'  // For Parameter Store
     
