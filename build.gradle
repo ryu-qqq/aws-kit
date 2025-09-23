@@ -93,8 +93,9 @@ subprojects {
         ]
     }
     
+    // Enable Gradle Module Metadata for better dependency resolution
     tasks.withType(GenerateModuleMetadata) {
-        enabled = false
+        enabled = true
     }
     
     publishing {

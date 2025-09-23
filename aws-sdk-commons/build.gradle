@@ -1,16 +1,12 @@
 plugins {
-    id 'org.springframework.boot'
+    id 'java-library'
     id 'jacoco'
 }
 
-// This is a library module, disable bootJar and enable plain jar
+// This is a library module, ensure jar is enabled
 jar {
     enabled = true
     archiveClassifier = ''
-}
-
-bootJar {
-    enabled = false
 }
 
 jacoco {
@@ -71,12 +67,13 @@ dependencies {
     compileOnly 'org.springframework.boot:spring-boot-starter'
     compileOnly 'org.springframework.boot:spring-boot-autoconfigure'
     annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
-    
-    // AWS SDK core types that are part of public API
+
+    // AWS SDK core types that are part of public API - with explicit versions
+    api platform("software.amazon.awssdk:bom:${awsSdkVersion}")
     api 'software.amazon.awssdk:aws-core'
     api 'software.amazon.awssdk:auth'
     api 'software.amazon.awssdk:regions'
-    
+
     // Internal dependencies - not exposed
     implementation 'software.amazon.awssdk:apache-client'
     implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'

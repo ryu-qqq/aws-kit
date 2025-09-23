@@ -68,8 +68,8 @@ dependencies {
     implementation 'software.amazon.awssdk:secretsmanager'
     implementation 'software.amazon.awssdk:ssm'  // For Parameter Store
     
-    // AWS Kit Commons
-    implementation project(':aws-sdk-commons')
+    // AWS Kit Commons - exposed as api for transitive dependency
+    api project(':aws-sdk-commons')
     
     // Spring Boot
     compileOnly 'org.springframework.boot:spring-boot-starter'

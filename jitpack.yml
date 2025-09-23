@@ -1,5 +1,10 @@
 jdk:
   - openjdk21
 
+before_install:
+  - export JITPACK=true
+
 install:
-  - ./gradlew clean build publishToMavenLocal -x test
+  - ./gradlew clean build publishToMavenLocal -x test --info
+  - echo "Checking generated JARs..."
+  - find ~/.m2/repository/com/github/ryu-qqq -name "*.jar" -type f | head -20
